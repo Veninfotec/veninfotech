@@ -100,7 +100,7 @@ export default async function HomePage(props: HomePageProps) {
         )}
 
         {/* Product Reviews & Community Q&A Section */}
-        <ProductCommunitySection />
+        {/* <ProductCommunitySection /> */}
       </main>
 
       <Footer />

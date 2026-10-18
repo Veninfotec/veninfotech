@@ -350,10 +350,10 @@ export default function BlogAdminPage() {
               href="/admin/new"
               className="inline-flex items-center gap-2 bg-[#1365A4] hover:bg-[#0e4c7c] text-white text-xs font-bold uppercase tracking-wider px-4 py-2.5 rounded-none shadow-md transition-all active:scale-95"
             >
-              <svg className="size-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
+              {/* <svg className="size-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
                 <path d="M12 5v14M5 12h14" />
-              </svg>
-              <span>+ New Article Form</span>
+              </svg> */}
+              <span>Create New Article</span>
             </Link>
 
             <button

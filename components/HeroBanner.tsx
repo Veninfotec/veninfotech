@@ -32,7 +32,7 @@ export default async function HeroBanner() {
 
       <div className="relative z-10 mx-auto flex w-full max-w-[1170px] flex-col justify-center px-4 py-16 sm:px-6">
         <div className="max-w-2xl animate-hero-fade">
-          <div className="inline-flex items-center gap-2 rounded-full border border-blue-500/30 bg-blue-500/10 px-3 py-1 text-xs font-semibold text-[#70baff] backdrop-blur-md">
+          <div className="inline-flex items-center gap-2 border border-blue-500/30 bg-blue-500/10 px-3 py-1 text-xs font-semibold text-[#70baff] backdrop-blur-md">
             <span className="size-2 rounded-full bg-[#1365A4] animate-pulse" />
             <span>VIT EDITORIAL DESK</span>
           </div>
