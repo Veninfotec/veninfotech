@@ -3,6 +3,7 @@ import { sql } from '@/lib/db';
 import Link from 'next/link';
 import Image from 'next/image';
 import ReactMarkdown from 'react-markdown';
+import ShareButton from '@/components/ShareButton';
 
 export const instant = false; // Prevents Next.js prerender blocking errors on dynamic DB calls
 
@@ -127,8 +128,17 @@ export default async function PostPage({ params }: PageProps) {
           </ReactMarkdown>
         </div>
 
+        {/* Share Section at the bottom of the blog */}
+        <div className="mt-12">
+          <ShareButton
+            title={post.title}
+            excerpt={post.excerpt}
+            url={`/posts/${post.slug}`}
+          />
+        </div>
+
         {/* Footer / Author Bar */}
-        <div className="mt-14 pt-8 border-t border-zinc-200 flex flex-col sm:flex-row items-center justify-between gap-4">
+        <div className="mt-10 pt-8 border-t border-zinc-200 flex flex-col sm:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-3">
             <div className="size-10 rounded-full bg-zinc-900 flex items-center justify-center font-bold text-white text-sm">
               {(post.author || 'E').charAt(0).toUpperCase()}

@@ -30,8 +30,8 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const decoded = decodeURIComponent(slug).toLowerCase();
   const title = CATEGORY_NAMES[decoded] || decoded.charAt(0).toUpperCase() + decoded.slice(1);
   return {
-    title: `${title} News & Articles | VIT`,
-    description: `Explore the latest articles, reporting, and updates in ${title} on VIT.`,
+    title: `${title} Articles`,
+    description: `Explore the latest articles, reporting, and engineering updates in ${title} on Veninfotech.`,
   };
 }
 

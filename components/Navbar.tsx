@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 
 interface NavItem {
   label: string;
@@ -26,6 +26,7 @@ const SECONDARY_ITEMS: NavItem[] = [
 ];
 
 export default function Navbar() {
+  const router = useRouter();
   const pathname = usePathname();
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
 
@@ -110,7 +111,8 @@ export default function Navbar() {
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (searchQuery.trim()) {
-      window.location.href = `/?search=${encodeURIComponent(searchQuery.trim())}`;
+      setIsSearchOpen(false);
+      router.push(`/?search=${encodeURIComponent(searchQuery.trim())}`);
     }
   };
 
@@ -128,6 +130,8 @@ export default function Navbar() {
           <Link
             href="/"
             onClick={() => setActiveCategory(null)}
+            aria-label="Veninfotech Home"
+            title="Veninfotech Home"
             className="text-xl sm:text-2xl font-black tracking-widest text-white transition-colors hover:text-brand select-none"
           >
             VIT

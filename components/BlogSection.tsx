@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import Cover from '@/components/ui/Cover';
 import { getLatestPosts } from '@/lib/posts';
+import ShareButton from '@/components/ShareButton';
 
 export default async function BlogSection({ count = 3 }: { count?: number }) {
   const posts = await getLatestPosts(count);
@@ -25,20 +26,29 @@ export default async function BlogSection({ count = 3 }: { count?: number }) {
               >
                 <Cover src={post.image} seed={post.slug} sizes="240px" />
               </Link>
-              <div className="min-w-0">
-                <h3 className="text-sm font-bold leading-snug text-white">
-                  <Link href={`/posts/${post.slug}`} className="hover:text-brand">{post.title}</Link>
-                </h3>
-                <p className="mt-1 text-[11px] text-brand">
-                  {post.date} · {post.views.toLocaleString('en-US')} views
-                </p>
-                <p className="mt-2 line-clamp-3 text-xs text-neutral-400">{post.excerpt}</p>
-                <Link
-                  href={`/posts/${post.slug}`}
-                  className="mt-3 inline-block text-[11px] font-bold uppercase tracking-wider text-brand hover:underline"
-                >
-                  Read post →
-                </Link>
+              <div className="min-w-0 flex-1 flex flex-col justify-between">
+                <div>
+                  <h3 className="text-sm font-bold leading-snug text-white">
+                    <Link href={`/posts/${post.slug}`} className="hover:text-brand">{post.title}</Link>
+                  </h3>
+                  <p className="mt-1 text-[11px] text-brand">
+                    {post.date} · {post.views.toLocaleString('en-US')} views
+                  </p>
+                  <p className="mt-2 line-clamp-3 text-xs text-neutral-400">{post.excerpt}</p>
+                </div>
+                <div className="mt-3 flex items-center justify-between gap-3 pt-2">
+                  <Link
+                    href={`/posts/${post.slug}`}
+                    className="inline-block text-[11px] font-bold uppercase tracking-wider text-brand hover:underline"
+                  >
+                    Read post →
+                  </Link>
+                  <ShareButton
+                    title={post.title}
+                    url={`/posts/${post.slug}`}
+                    variant="compact"
+                  />
+                </div>
               </div>
             </li>
           ))}

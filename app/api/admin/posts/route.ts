@@ -4,6 +4,11 @@ import path from 'node:path';
 import { revalidatePath } from 'next/cache';
 import { sql } from '@/lib/db';
 import { ADMIN_COOKIE_NAME, verifySessionToken } from '@/lib/auth';
+import {
+  validateApiOrigin,
+  getCorsHeaders,
+  handleCorsPreflight,
+} from '@/lib/security';
 
 const CONTENT_DIR = path.join(process.cwd(), 'content');
 
@@ -22,14 +27,22 @@ function sanitizeSlug(input: string): string {
     .replace(/(^-|-$)/g, '');
 }
 
+export async function OPTIONS(request: NextRequest) {
+  return handleCorsPreflight(request);
+}
+
 export async function POST(request: NextRequest) {
+  // Enforce origin validation to prevent CSRF / cross-site abuse
+  const originError = validateApiOrigin(request);
+  if (originError) return originError;
+
   try {
     const token = request.cookies.get(ADMIN_COOKIE_NAME)?.value;
     const isAuthenticated = await verifySessionToken(token);
     if (!isAuthenticated) {
       return NextResponse.json(
         { success: false, error: 'Unauthorized. Please sign in via the admin portal.' },
-        { status: 401 },
+        { status: 401, headers: getCorsHeaders(request) },
       );
     }
 
@@ -49,14 +62,14 @@ export async function POST(request: NextRequest) {
     if (!title || !title.trim()) {
       return NextResponse.json(
         { success: false, error: 'Article Title is required' },
-        { status: 400 },
+        { status: 400, headers: getCorsHeaders(request) },
       );
     }
 
     if (!content || !content.trim()) {
       return NextResponse.json(
         { success: false, error: 'Article Content (Markdown) is required' },
-        { status: 400 },
+        { status: 400, headers: getCorsHeaders(request) },
       );
     }
 
@@ -128,14 +141,14 @@ ${cleanContent}
         path: `/posts/${finalSlug}`,
         file: `content/${finalSlug}.md`,
       },
-      { status: 201 },
+      { status: 201, headers: getCorsHeaders(request) },
     );
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : 'Failed to publish post';
     console.error('Error in /api/admin/posts route:', error);
     return NextResponse.json(
       { success: false, error: message },
-      { status: 500 },
+      { status: 500, headers: getCorsHeaders(request) },
     );
   }
 }

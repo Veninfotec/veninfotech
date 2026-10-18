@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="32" height="32">
+  <defs>
+    <linearGradient id="vit-bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0e131f" />
+      <stop offset="100%" stop-color="#07090d" />
+    </linearGradient>
+  </defs>
+  <rect x="0.75" y="0.75" width="30.5" height="30.5" rx="7" fill="url(#vit-bg)" stroke="#1365A4" stroke-width="1.5"/>
+  <text x="16" y="21.5" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-weight="900" font-size="13" text-anchor="middle" letter-spacing="-0.5">
+    <tspan fill="#38bdf8">V</tspan><tspan fill="#ffffff">IT</tspan>
+  </text>
+</svg>

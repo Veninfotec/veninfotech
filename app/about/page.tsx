@@ -4,9 +4,9 @@ import Link from 'next/link';
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
-  title: 'About Veninfotech – Precision in Technology and Design',
+  title: 'About Us - Precision in Technology & Engineering',
   description:
-    'Welcome to Veninfotech. We are a dedicated team of software engineers, UI/UX designers, and tech enthusiasts bringing you crisp, high-signal reporting on the technologies you live with every day.',
+    'Discover Veninfotech (VIT). We are a dedicated team of software engineers, system architects, and tech enthusiasts delivering high-signal analysis on modern technology and engineering.',
 };
 
 export default function AboutPage() {
