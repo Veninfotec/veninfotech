@@ -109,6 +109,38 @@ export const metadata: Metadata = {
   manifest: '/site.webmanifest',
 };
 
+const jsonLd = {
+  '@context': 'https://schema.org',
+  '@graph': [
+    {
+      '@type': 'WebSite',
+      '@id': 'https://veninfotech.net/#website',
+      'url': 'https://veninfotech.net',
+      'name': 'Veninfotech',
+      'alternateName': ['VIT', 'Veninfotech Publication'],
+      'description':
+        'Veninfotech (VIT) is a leading technology publication delivering authoritative reporting, software engineering deep dives, artificial intelligence breakdowns, and digital transformation analysis.',
+      'inLanguage': 'en-US',
+      'publisher': {
+        '@id': 'https://veninfotech.net/#organization',
+      },
+    },
+    {
+      '@type': 'Organization',
+      '@id': 'https://veninfotech.net/#organization',
+      'name': 'Veninfotech',
+      'alternateName': 'VIT',
+      'url': 'https://veninfotech.net',
+      'logo': {
+        '@type': 'ImageObject',
+        'url': 'https://veninfotech.net/android-chrome-512x512.png',
+        'width': 512,
+        'height': 512,
+      },
+    },
+  ],
+};
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -119,7 +151,13 @@ export default function RootLayout({
       lang="en"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col">{children}</body>
+      <body className="min-h-full flex flex-col">
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+        />
+        {children}
+      </body>
     </html>
   );
 }
