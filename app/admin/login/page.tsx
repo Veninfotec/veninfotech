@@ -105,7 +105,7 @@ export default function AdminLoginPage() {
                 disabled={isLoading}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                placeholder="Enter password (e.g. adminportalblog)"
+                placeholder="Enter admin password"
                 className="w-full bg-[#0a0a0c] border border-neutral-700 px-4 py-3 text-sm text-white placeholder-neutral-500 focus:outline-none focus:border-[#1365A4] transition-colors pr-10 disabled:opacity-50"
               />
 
