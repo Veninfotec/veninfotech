@@ -7,6 +7,7 @@ import {
   getCorsHeaders,
   handleCorsPreflight,
 } from '@/lib/security';
+import { isR2Configured, uploadImageBuffer } from '@/lib/r2';
 
 export async function OPTIONS(request: NextRequest) {
   return handleCorsPreflight(request);
@@ -59,22 +60,55 @@ export async function POST(request: NextRequest) {
       .slice(0, 30);
     const fileName = `${cleanName}-${Date.now()}${ext}`;
 
-    const uploadsDir = path.join(process.cwd(), 'public', 'uploads');
-    await fs.mkdir(uploadsDir, { recursive: true });
+    // 1. Cloudflare R2 Upload (Recommended for serverless/Vercel)
+    if (isR2Configured()) {
+      try {
+        const publicUrl = await uploadImageBuffer(buffer, fileName, mimeType);
+        return NextResponse.json(
+          {
+            success: true,
+            url: publicUrl,
+            fileName,
+          },
+          { headers: getCorsHeaders(request) },
+        );
+      } catch (r2Err) {
+        console.warn('R2 upload failed, attempting local fallback:', r2Err);
+      }
+    }
 
-    const filePath = path.join(uploadsDir, fileName);
-    await fs.writeFile(filePath, buffer);
+    // 2. Local filesystem storage (Local development fallback)
+    try {
+      const uploadsDir = path.join(process.cwd(), 'public', 'uploads');
+      await fs.mkdir(uploadsDir, { recursive: true });
 
-    const publicUrl = `/uploads/${fileName}`;
+      const filePath = path.join(uploadsDir, fileName);
+      await fs.writeFile(filePath, buffer);
 
-    return NextResponse.json(
-      {
-        success: true,
-        url: publicUrl,
-        fileName,
-      },
-      { headers: getCorsHeaders(request) },
-    );
+      const publicUrl = `/uploads/${fileName}`;
+
+      return NextResponse.json(
+        {
+          success: true,
+          url: publicUrl,
+          fileName,
+        },
+        { headers: getCorsHeaders(request) },
+      );
+    } catch (fsErr: unknown) {
+      const errorObj = fsErr as { code?: string; message?: string };
+      if (errorObj?.code === 'EROFS') {
+        return NextResponse.json(
+          {
+            success: false,
+            error:
+              'Filesystem is read-only on Vercel. Please ensure Cloudflare R2 environment variables (R2_ACCOUNT_ID, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY, R2_BUCKET_NAME, R2_PUBLIC_URL) are configured in your Vercel project.',
+          },
+          { status: 500, headers: getCorsHeaders(request) },
+        );
+      }
+      throw fsErr;
+    }
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : 'File upload failed';
     console.error('Upload handler error:', error);

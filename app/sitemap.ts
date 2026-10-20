@@ -1,6 +1,5 @@
 import type { MetadataRoute } from 'next';
-import fs from 'node:fs';
-import path from 'node:path';
+import { getAllPosts } from '@/lib/posts';
 
 const SITE_URL = 'https://veninfotech.net';
 
@@ -14,7 +13,7 @@ const CATEGORIES = [
   'travel',
 ];
 
-export default function sitemap(): MetadataRoute.Sitemap {
+export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const routes: MetadataRoute.Sitemap = [
     {
       url: SITE_URL,
@@ -40,21 +39,17 @@ export default function sitemap(): MetadataRoute.Sitemap {
   }
 
   try {
-    const contentDir = path.join(process.cwd(), 'content');
-    if (fs.existsSync(contentDir)) {
-      const files = fs.readdirSync(contentDir).filter((f) => f.endsWith('.md'));
-      for (const file of files) {
-        const slug = file.replace(/\.md$/, '');
-        routes.push({
-          url: `${SITE_URL}/posts/${slug}`,
-          lastModified: new Date(),
-          changeFrequency: 'weekly',
-          priority: 0.9,
-        });
-      }
+    const posts = await getAllPosts('published');
+    for (const post of posts) {
+      routes.push({
+        url: `${SITE_URL}/posts/${post.slug}`,
+        lastModified: new Date(post.timestamp || Date.now()),
+        changeFrequency: 'weekly',
+        priority: 0.9,
+      });
     }
   } catch (err) {
-    console.warn('Sitemap file read error:', err);
+    console.warn('Sitemap dynamic posts query error:', err);
   }
 
   return routes;

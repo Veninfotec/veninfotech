@@ -87,12 +87,26 @@ export async function POST(request: NextRequest) {
       finalSlug = `post-${Date.now()}`;
     }
 
-    // 3. Ensure content/ directory exists
-    await fs.mkdir(CONTENT_DIR, { recursive: true });
+    // 3. Primary Storage: Neon Database (Persists in production & serverless environments like Vercel)
+    await sql`
+      INSERT INTO posts (slug, title, excerpt, content, category, image, status, author)
+      VALUES (${finalSlug}, ${cleanTitle}, ${cleanExcerpt}, ${cleanContent}, ${cleanCategory}, ${cleanImage}, ${cleanStatus}, ${cleanAuthor})
+      ON CONFLICT (slug) DO UPDATE SET
+        title = EXCLUDED.title,
+        excerpt = EXCLUDED.excerpt,
+        content = EXCLUDED.content,
+        category = EXCLUDED.category,
+        image = EXCLUDED.image,
+        status = EXCLUDED.status,
+        author = EXCLUDED.author,
+        updated_at = CURRENT_TIMESTAMP
+    `;
 
-    // 4. Format Frontmatter Markdown
-    const publishedDate = formatPublishedDate(new Date());
-    const fileContent = `---
+    // 4. Secondary Sync: Write local markdown file if filesystem is writable (e.g. local development)
+    try {
+      await fs.mkdir(CONTENT_DIR, { recursive: true });
+      const publishedDate = formatPublishedDate(new Date());
+      const fileContent = `---
 title: "${cleanTitle.replace(/"/g, '\\"')}"
 date: "${publishedDate}"
 category: "${cleanCategory}"
@@ -104,31 +118,15 @@ status: "${cleanStatus}"
 
 ${cleanContent}
 `;
-
-    // 5. Write file securely using fs
-    const targetFilePath = path.join(CONTENT_DIR, `${finalSlug}.md`);
-    await fs.writeFile(targetFilePath, fileContent, 'utf-8');
-
-    // 6. Optional: Sync to Neon Database if available for relational queries & views
-    try {
-      await sql`
-        INSERT INTO posts (slug, title, excerpt, content, category, image, status, author)
-        VALUES (${finalSlug}, ${cleanTitle}, ${cleanExcerpt}, ${cleanContent}, ${cleanCategory}, ${cleanImage}, ${cleanStatus}, ${cleanAuthor})
-        ON CONFLICT (slug) DO UPDATE SET
-          title = EXCLUDED.title,
-          excerpt = EXCLUDED.excerpt,
-          content = EXCLUDED.content,
-          category = EXCLUDED.category,
-          image = EXCLUDED.image,
-          status = EXCLUDED.status,
-          author = EXCLUDED.author,
-          updated_at = CURRENT_TIMESTAMP
-      `;
-    } catch (dbErr) {
-      console.warn('Database sync skipped (Markdown file saved successfully):', dbErr);
+      const targetFilePath = path.join(CONTENT_DIR, `${finalSlug}.md`);
+      await fs.writeFile(targetFilePath, fileContent, 'utf-8');
+    } catch (fsErr) {
+      // In serverless environments (e.g. Vercel), the filesystem is read-only (EROFS).
+      // Since the article is already safely stored in Neon PostgreSQL, we silently bypass filesystem writes.
+      console.info('Filesystem write skipped (read-only environment / Vercel):', fsErr instanceof Error ? fsErr.message : fsErr);
     }
 
-    // 7. Revalidate Next.js cache so the article appears immediately
+    // 5. Revalidate Next.js cache so the article appears immediately
     revalidatePath('/');
     revalidatePath(`/posts/${finalSlug}`);
     revalidatePath(`/category/${cleanCategory.toLowerCase()}`);
@@ -136,7 +134,7 @@ ${cleanContent}
     return NextResponse.json(
       {
         success: true,
-        message: 'Article successfully published as markdown.',
+        message: 'Article successfully published.',
         slug: finalSlug,
         path: `/posts/${finalSlug}`,
         file: `content/${finalSlug}.md`,

@@ -216,7 +216,8 @@ export default function NewPostAdminPage() {
                       Article Successfully Published!
                     </h3>
                     <p className="mt-1 text-xs text-neutral-300">
-                      Markdown file saved at <code className="text-emerald-400 font-mono font-bold">{successInfo.file}</code>.
+                      Article successfully saved to database and live at{' '}
+                      <code className="text-emerald-400 font-mono font-bold">{successInfo.path}</code>.
                     </p>
                     <div className="mt-4 flex flex-wrap items-center gap-3">
                       <Link
