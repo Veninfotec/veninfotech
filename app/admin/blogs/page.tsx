@@ -3,6 +3,8 @@
 import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 
 interface PostData {
   id?: number;
@@ -848,15 +850,41 @@ export default function BlogAdminPage() {
                     className="w-full bg-[#0d0f14] border border-neutral-700 p-4 font-mono text-xs text-white placeholder-neutral-500 focus:outline-none focus:border-[#1365A4] leading-relaxed"
                   />
                 ) : (
-                  <div className="bg-[#0d0f14] border border-neutral-700 p-6 min-h-[280px] max-h-[400px] overflow-y-auto">
-                    <div className="prose prose-invert max-w-none text-neutral-200 text-sm space-y-3">
-                      <p className="text-xs text-neutral-500 uppercase tracking-wider font-semibold border-b border-neutral-800 pb-1">
-                        Live Preview Display:
-                      </p>
-                      <h2 className="text-xl font-bold text-white">{title || 'Untitled Post'}</h2>
-                      <div className="whitespace-pre-wrap font-sans text-neutral-300 leading-relaxed">
+                  <div className="bg-[#0d0f14] border border-neutral-700 p-6 min-h-[300px] max-h-[500px] overflow-y-auto">
+                    <p className="text-xs text-neutral-500 uppercase tracking-wider font-semibold border-b border-neutral-800 pb-2 mb-4">
+                      Live Preview Display:
+                    </p>
+                    <h2 className="text-xl sm:text-2xl font-bold text-white mb-4">{title || 'Untitled Post'}</h2>
+                    <div className="text-neutral-300 text-sm leading-relaxed">
+                      <ReactMarkdown
+                        remarkPlugins={[remarkGfm]}
+                        components={{
+                          h1: ({ children }) => <h1 className="text-xl font-bold text-white mt-6 mb-3 border-b border-neutral-800 pb-1">{children}</h1>,
+                          h2: ({ children }) => <h2 className="text-lg font-bold text-white mt-5 mb-2.5">{children}</h2>,
+                          h3: ({ children }) => <h3 className="text-base font-bold text-neutral-200 mt-4 mb-2">{children}</h3>,
+                          p: ({ children }) => <p className="mb-3 leading-relaxed text-neutral-300">{children}</p>,
+                          ul: ({ children }) => <ul className="list-disc pl-5 my-3 space-y-1 text-neutral-300">{children}</ul>,
+                          ol: ({ children }) => <ol className="list-decimal pl-5 my-3 space-y-1 text-neutral-300">{children}</ol>,
+                          li: ({ children }) => <li className="leading-relaxed">{children}</li>,
+                          strong: ({ children }) => <strong className="font-semibold text-white">{children}</strong>,
+                          hr: () => <hr className="my-6 border-neutral-800" />,
+                          table: ({ children }) => (
+                            <div className="overflow-x-auto my-4 border border-neutral-800 rounded bg-[#0a0c10]">
+                              <table className="w-full text-left text-xs border-collapse min-w-[400px]">
+                                {children}
+                              </table>
+                            </div>
+                          ),
+                          thead: ({ children }) => <thead className="bg-neutral-800/80 text-white font-semibold uppercase tracking-wider text-[11px] border-b border-neutral-800">{children}</thead>,
+                          tbody: ({ children }) => <tbody className="divide-y divide-neutral-800/70">{children}</tbody>,
+                          tr: ({ children }) => <tr className="hover:bg-neutral-800/30 even:bg-neutral-900/30">{children}</tr>,
+                          th: ({ children }) => <th className="px-3 py-2 text-white font-semibold">{children}</th>,
+                          td: ({ children }) => <td className="px-3 py-2 text-neutral-300 align-middle">{children}</td>,
+                          blockquote: ({ children }) => <blockquote className="border-l-2 border-[#1365A4] pl-3 my-3 italic text-neutral-400 bg-neutral-900/40 py-1.5 rounded-r">{children}</blockquote>,
+                        }}
+                      >
                         {content}
-                      </div>
+                      </ReactMarkdown>
                     </div>
                   </div>
                 )}

@@ -3,6 +3,8 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 
 const CATEGORY_OPTIONS = [
   'Technology',
@@ -38,6 +40,7 @@ export default function NewPostAdminPage() {
   const [content, setContent] = useState('');
   const [image, setImage] = useState('/images/hero/hero-bg.jpg');
   const [status, setStatus] = useState<'published' | 'draft'>('published');
+  const [editorMode, setEditorMode] = useState<'write' | 'preview'>('write');
 
   // Form Submission States
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -465,39 +468,102 @@ export default function NewPostAdminPage() {
 
             {/* Markdown Content Area */}
             <div>
-              <div className="flex items-center justify-between mb-2">
-                <label
-                  htmlFor="article-content"
-                  className="text-xs font-bold uppercase tracking-wider text-neutral-300"
-                >
-                  Article Markdown Content <span className="text-rose-400">*</span>
-                </label>
+              <div className="flex items-center justify-between border-b border-neutral-800 pb-2 mb-3">
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setEditorMode('write')}
+                    className={`px-3 py-1 text-xs font-semibold uppercase tracking-wider rounded transition-colors ${
+                      editorMode === 'write'
+                        ? 'bg-[#1365A4] text-white shadow-sm'
+                        : 'text-neutral-400 hover:text-white bg-neutral-900'
+                    }`}
+                  >
+                    Write (Markdown)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setEditorMode('preview')}
+                    className={`px-3 py-1 text-xs font-semibold uppercase tracking-wider rounded transition-colors ${
+                      editorMode === 'preview'
+                        ? 'bg-[#1365A4] text-white shadow-sm'
+                        : 'text-neutral-400 hover:text-white bg-neutral-900'
+                    }`}
+                  >
+                    Preview Formatted &amp; Tables
+                  </button>
+                </div>
+
                 <span className="text-[11px] text-neutral-500 font-mono">
                   {content.length} chars • {content.trim() ? content.trim().split(/\s+/).length : 0} words
                 </span>
               </div>
 
-              <textarea
-                id="article-content"
-                rows={14}
-                required
-                disabled={isSubmitting}
-                value={content}
-                onChange={(e) => setContent(e.target.value)}
-                placeholder={`# Headline
+              {editorMode === 'write' ? (
+                <textarea
+                  id="article-content"
+                  rows={16}
+                  required
+                  disabled={isSubmitting}
+                  value={content}
+                  onChange={(e) => setContent(e.target.value)}
+                  placeholder={`# Headline
 
 Write your report in Markdown format...
 
 ## Subheading
 
+| Age Bracket | Points |
+| :--- | :--- |
+| **20–29** | 300 |
+| **30** | 286 |
+
 - Bullet point
 - Another point
 
-> Insight or notable quote
-
-Detailed paragraph...`}
-                className="w-full bg-[#0a0a0c] border border-neutral-700 rounded-md p-4 font-mono text-xs text-white placeholder-neutral-600 focus:outline-none focus:border-[#1365A4] transition-colors disabled:opacity-50 leading-relaxed resize-y"
-              />
+> Insight or notable quote`}
+                  className="w-full bg-[#0a0a0c] border border-neutral-700 rounded-md p-4 font-mono text-xs text-white placeholder-neutral-600 focus:outline-none focus:border-[#1365A4] transition-colors disabled:opacity-50 leading-relaxed resize-y"
+                />
+              ) : (
+                <div className="bg-[#0a0a0c] border border-neutral-700 rounded-md p-6 min-h-[350px] max-h-[600px] overflow-y-auto">
+                  <p className="text-xs text-neutral-500 uppercase tracking-wider font-semibold border-b border-neutral-800 pb-2 mb-4">
+                    Formatted Article Preview (Live GFM Tables):
+                  </p>
+                  <h1 className="text-2xl font-bold text-white mb-4">{title || 'Untitled Post'}</h1>
+                  <div className="text-neutral-300 text-sm leading-relaxed">
+                    <ReactMarkdown
+                      remarkPlugins={[remarkGfm]}
+                      components={{
+                        h1: ({ children }) => <h1 className="text-xl font-bold text-white mt-6 mb-3 border-b border-neutral-800 pb-1">{children}</h1>,
+                        h2: ({ children }) => <h2 className="text-lg font-bold text-white mt-5 mb-2.5">{children}</h2>,
+                        h3: ({ children }) => <h3 className="text-base font-bold text-neutral-200 mt-4 mb-2">{children}</h3>,
+                        h4: ({ children }) => <h4 className="text-sm font-bold text-neutral-300 mt-3 mb-1.5">{children}</h4>,
+                        p: ({ children }) => <p className="mb-3 leading-relaxed text-neutral-300">{children}</p>,
+                        ul: ({ children }) => <ul className="list-disc pl-5 my-3 space-y-1 text-neutral-300">{children}</ul>,
+                        ol: ({ children }) => <ol className="list-decimal pl-5 my-3 space-y-1 text-neutral-300">{children}</ol>,
+                        li: ({ children }) => <li className="leading-relaxed">{children}</li>,
+                        strong: ({ children }) => <strong className="font-semibold text-white">{children}</strong>,
+                        hr: () => <hr className="my-6 border-neutral-800" />,
+                        table: ({ children }) => (
+                          <div className="overflow-x-auto my-4 border border-neutral-800 rounded bg-[#0f1219]">
+                            <table className="w-full text-left text-xs border-collapse min-w-[450px]">
+                              {children}
+                            </table>
+                          </div>
+                        ),
+                        thead: ({ children }) => <thead className="bg-neutral-800/80 text-white font-semibold uppercase tracking-wider text-[11px] border-b border-neutral-800">{children}</thead>,
+                        tbody: ({ children }) => <tbody className="divide-y divide-neutral-800/70">{children}</tbody>,
+                        tr: ({ children }) => <tr className="hover:bg-neutral-800/30 even:bg-neutral-900/30">{children}</tr>,
+                        th: ({ children }) => <th className="px-3 py-2 text-white font-semibold">{children}</th>,
+                        td: ({ children }) => <td className="px-3 py-2 text-neutral-300 align-middle">{children}</td>,
+                        blockquote: ({ children }) => <blockquote className="border-l-2 border-[#1365A4] pl-3 my-3 italic text-neutral-400 bg-neutral-900/40 py-1.5 rounded-r">{children}</blockquote>,
+                      }}
+                    >
+                      {content || '*No content written yet. Switch to "Write (Markdown)" to compose your article.*'}
+                    </ReactMarkdown>
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Center-Aligned Action Buttons */}

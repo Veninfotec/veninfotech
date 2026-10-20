@@ -3,6 +3,7 @@ import { sql } from '@/lib/db';
 import Link from 'next/link';
 import Image from 'next/image';
 import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import ShareButton from '@/components/ShareButton';
 
 export const instant = false; // Prevents Next.js prerender blocking errors on dynamic DB calls
@@ -115,13 +116,72 @@ export default async function PostPage({ params }: PageProps) {
         {/* Article Body using ReactMarkdown with Custom Component Spacing */}
         <div className="max-w-none text-zinc-700 text-base sm:text-lg leading-relaxed">
           <ReactMarkdown
+            remarkPlugins={[remarkGfm]}
             components={{
               p: ({ children }) => <p className="mb-6 leading-relaxed">{children}</p>,
-              h2: ({ children }) => <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-zinc-900 mt-10 mb-4">{children}</h2>,
-              h3: ({ children }) => <h3 className="text-xl font-bold text-zinc-900 mt-8 mb-3">{children}</h3>,
-              ul: ({ children }) => <ul className="list-disc pl-6 my-6 space-y-3">{children}</ul>,
+              h2: ({ children }) => (
+                <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-zinc-900 mt-10 mb-4 pb-2 border-b border-zinc-100">
+                  {children}
+                </h2>
+              ),
+              h3: ({ children }) => (
+                <h3 className="text-xl font-bold text-zinc-900 mt-8 mb-3">{children}</h3>
+              ),
+              h4: ({ children }) => (
+                <h4 className="text-lg font-bold text-zinc-900 mt-6 mb-2">{children}</h4>
+              ),
+              ul: ({ children }) => <ul className="list-disc pl-6 my-6 space-y-2.5">{children}</ul>,
+              ol: ({ children }) => <ol className="list-decimal pl-6 my-6 space-y-2.5">{children}</ol>,
               li: ({ children }) => <li className="my-1.5 leading-relaxed text-zinc-700">{children}</li>,
               strong: ({ children }) => <strong className="font-bold text-zinc-900">{children}</strong>,
+              hr: () => <hr className="my-10 border-zinc-200" />,
+              blockquote: ({ children }) => (
+                <blockquote className="border-l-4 border-[#1365A4] bg-zinc-50/70 pl-4 py-2 my-6 italic text-zinc-700 rounded-r">
+                  {children}
+                </blockquote>
+              ),
+              table: ({ children }) => (
+                <div className="overflow-x-auto my-8 border border-zinc-200 rounded-xl shadow-sm bg-white">
+                  <table className="w-full min-w-[500px] border-collapse text-left text-sm sm:text-base">
+                    {children}
+                  </table>
+                </div>
+              ),
+              thead: ({ children }) => (
+                <thead className="bg-zinc-100/90 text-zinc-900 font-bold border-b border-zinc-200 uppercase text-xs tracking-wider">
+                  {children}
+                </thead>
+              ),
+              tbody: ({ children }) => (
+                <tbody className="divide-y divide-zinc-200 bg-white">
+                  {children}
+                </tbody>
+              ),
+              tr: ({ children }) => (
+                <tr className="hover:bg-zinc-50/80 transition-colors even:bg-zinc-50/40">
+                  {children}
+                </tr>
+              ),
+              th: ({ children }) => (
+                <th className="px-4 py-3 sm:px-6 sm:py-3.5 font-bold text-zinc-900 text-xs sm:text-sm">
+                  {children}
+                </th>
+              ),
+              td: ({ children }) => (
+                <td className="px-4 py-3 sm:px-6 sm:py-3.5 text-zinc-700 text-xs sm:text-sm align-middle leading-normal">
+                  {children}
+                </td>
+              ),
+              a: ({ href, children }) => (
+                <a
+                  href={href}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-[#1365A4] hover:underline underline-offset-2 font-medium"
+                >
+                  {children}
+                </a>
+              ),
             }}
           >
             {contentToRender}
