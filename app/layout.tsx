@@ -65,7 +65,7 @@ export const metadata: Metadata = {
     type: 'website',
     images: [
       {
-        url: '/images/hero/hero-bg.jpg',
+        url: '/images/og-default.jpg',
         width: 1200,
         height: 630,
         alt: 'Veninfotech - Modern Technology Publication & Engineering Insights',
@@ -80,7 +80,7 @@ export const metadata: Metadata = {
     },
     description:
       'Veninfotech (VIT) is a leading technology publication delivering authoritative reporting, software engineering deep dives, and artificial intelligence breakdowns.',
-    images: ['/images/hero/hero-bg.jpg'],
+    images: ['/images/og-default.jpg'],
     creator: '@veninfotech',
     site: '@veninfotech',
   },

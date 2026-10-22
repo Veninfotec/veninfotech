@@ -1,3 +1,4 @@
+import type { Metadata } from 'next';
 import { getPostBySlug } from '@/lib/posts';
 import { sql } from '@/lib/db';
 import Link from 'next/link';
@@ -10,6 +11,68 @@ export const instant = false; // Prevents Next.js prerender blocking errors on d
 
 interface PageProps {
   params: Promise<{ slug: string }>;
+}
+
+export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
+  const { slug } = await params;
+  const post = await getPostBySlug(slug);
+
+  if (!post) {
+    return {
+      title: 'Post Not Found',
+      description: 'The requested article could not be found on Veninfotech.',
+    };
+  }
+
+  const siteUrl = 'https://veninfotech.net';
+  const postUrl = `${siteUrl}/posts/${post.slug}`;
+
+  // Ensure absolute URL for social crawlers (Facebook, LinkedIn, X, WhatsApp)
+  let imageUrl = post.image || '/images/hero/hero-bg.jpg';
+  if (imageUrl && !imageUrl.startsWith('http')) {
+    imageUrl = `${siteUrl}${imageUrl.startsWith('/') ? imageUrl : `/${imageUrl}`}`;
+  }
+
+  const description =
+    post.excerpt ||
+    `Read "${post.title}" on Veninfotech - Modern Technology Publication & Engineering Insights.`;
+
+  return {
+    title: post.title,
+    description,
+    authors: [{ name: post.author || 'Veninfotech Editorial Team' }],
+    alternates: {
+      canonical: `/posts/${post.slug}`,
+    },
+    openGraph: {
+      title: post.title,
+      description,
+      url: postUrl,
+      siteName: 'Veninfotech',
+      locale: 'en_US',
+      type: 'article',
+      publishedTime: post.date,
+      authors: [post.author || 'Veninfotech Editorial Team'],
+      images: imageUrl
+        ? [
+            {
+              url: imageUrl,
+              width: 1200,
+              height: 630,
+              alt: post.title,
+            },
+          ]
+        : undefined,
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title: post.title,
+      description,
+      images: imageUrl ? [imageUrl] : undefined,
+      creator: '@veninfotech',
+      site: '@veninfotech',
+    },
+  };
 }
 
 export default async function PostPage({ params }: PageProps) {
