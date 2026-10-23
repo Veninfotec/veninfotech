@@ -21,7 +21,7 @@ import {
 } from '@/lib/cms';
 
 import { redirect } from 'next/navigation';
-import { getAllPosts } from '@/lib/posts';
+import { getAllPosts, getNewsPosts } from '@/lib/posts';
 
 export const instant = false; // Allows dynamic database queries on the homepage
 
@@ -56,28 +56,30 @@ export default async function HomePage(props: HomePageProps) {
     redirect(`/category/${encodeURIComponent(searchParams.category.toLowerCase())}`);
   }
 
-  const allPosts = await getAllPosts('published');
-  const extraPosts = allPosts.slice(5);
+  // Fetch dedicated News articles for the Breaking & Recent News section
+  const { breaking: newsBreaking, recent: newsRecent } = await getNewsPosts();
 
-  const breakingPost = extraPosts[0]
+  const breakingPost = newsBreaking
     ? {
-        id: String(extraPosts[0].id ?? extraPosts[0].slug),
-        badge: 'ARCHIVE',
-        category: (extraPosts[0].category || 'NEWS').toUpperCase(),
-        title: extraPosts[0].title,
-        date: extraPosts[0].date,
-        image: extraPosts[0].image || '/images/hero/hero-bg.jpg',
-        href: `/posts/${extraPosts[0].slug}`,
+        id: String(newsBreaking.id ?? newsBreaking.slug),
+        badge: newsBreaking.is_breaking ? '⚡ BREAKING NEWS' : 'LATEST STORY',
+        category: (newsBreaking.category || 'NEWS').toUpperCase(),
+        title: newsBreaking.title,
+        date: newsBreaking.date,
+        image: newsBreaking.image || '/images/hero/hero-bg.jpg',
+        href: `/posts/${newsBreaking.slug}`,
+        is_breaking: Boolean(newsBreaking.is_breaking),
       }
     : undefined;
 
-  const popularPosts = extraPosts.slice(1, 5).map((p) => ({
+  const popularPosts = newsRecent.map((p) => ({
     id: String(p.id ?? p.slug),
     categories: [(p.category || 'NEWS').toUpperCase()],
     title: p.title,
     excerpt: p.excerpt,
     image: p.image || '/images/hero/hero-bg.jpg',
     href: `/posts/${p.slug}`,
+    date: p.date,
   }));
 
   return (
@@ -94,7 +96,7 @@ export default async function HomePage(props: HomePageProps) {
           <HeroBanner />
         </Suspense>
 
-        {/* More Stories & Archive Feed (Only renders if real published posts exist beyond the 5 Hero stories) */}
+        {/* Breaking News Spotlight & Recent News Section */}
         {breakingPost && (
           <BreakingPopularSection breaking={breakingPost} popular={popularPosts} />
         )}

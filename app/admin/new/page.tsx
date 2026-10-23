@@ -7,6 +7,7 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 
 const CATEGORY_OPTIONS = [
+  'News',
   'Technology',
   'Culture',
   'Economy',
@@ -40,6 +41,8 @@ export default function NewPostAdminPage() {
   const [content, setContent] = useState('');
   const [image, setImage] = useState('/images/hero/hero-bg.jpg');
   const [status, setStatus] = useState<'published' | 'draft'>('published');
+  const [postType, setPostType] = useState<'blog' | 'news'>('blog');
+  const [isBreaking, setIsBreaking] = useState(false);
   const [editorMode, setEditorMode] = useState<'write' | 'preview'>('write');
 
   // Form Submission States
@@ -75,6 +78,8 @@ export default function NewPostAdminPage() {
     setContent('');
     setImage('/images/hero/hero-bg.jpg');
     setStatus('published');
+    setPostType('blog');
+    setIsBreaking(false);
     setSuccessInfo(null);
     setErrorMessage(null);
   };
@@ -124,6 +129,8 @@ export default function NewPostAdminPage() {
         content: content.trim(),
         image: image.trim(),
         status,
+        post_type: postType,
+        is_breaking: isBreaking,
       };
 
       const res = await fetch('/api/admin/posts', {
@@ -169,6 +176,13 @@ export default function NewPostAdminPage() {
               className="text-neutral-400 hover:text-white font-semibold transition-colors"
             >
               All Articles
+            </Link>
+            <Link
+              href="/admin/news-queue"
+              className="inline-flex items-center gap-1.5 text-[#70baff] hover:text-white font-semibold transition-colors bg-[#1365A4]/20 border border-[#1365A4]/40 px-2.5 py-1 rounded"
+            >
+              <span className="size-1.5 rounded-full bg-emerald-400 animate-pulse" />
+              <span>AI News Queue</span>
             </Link>
             <Link
               href="/"
@@ -378,6 +392,36 @@ export default function NewPostAdminPage() {
 
               <div>
                 <span className="block text-xs font-bold uppercase tracking-wider text-neutral-300 mb-2">
+                  Article Classification
+                </span>
+                <div className="flex items-center gap-4 pt-2">
+                  <label className="inline-flex items-center gap-1.5 text-xs text-neutral-300 cursor-pointer">
+                    <input
+                      type="radio"
+                      name="post_type"
+                      disabled={isSubmitting}
+                      checked={postType === 'blog'}
+                      onChange={() => setPostType('blog')}
+                      className="accent-[#1365A4]"
+                    />
+                    <span className="text-neutral-200 font-semibold">📝 Blog Post</span>
+                  </label>
+                  <label className="inline-flex items-center gap-1.5 text-xs text-neutral-300 cursor-pointer">
+                    <input
+                      type="radio"
+                      name="post_type"
+                      disabled={isSubmitting}
+                      checked={postType === 'news'}
+                      onChange={() => setPostType('news')}
+                      className="accent-[#1365A4]"
+                    />
+                    <span className="text-orange-400 font-semibold">⚡ News Story</span>
+                  </label>
+                </div>
+              </div>
+
+              <div>
+                <span className="block text-xs font-bold uppercase tracking-wider text-neutral-300 mb-2">
                   Publication Status
                 </span>
                 <div className="flex items-center gap-4 pt-2">
@@ -404,6 +448,25 @@ export default function NewPostAdminPage() {
                     <span className="text-amber-400 font-semibold">Draft</span>
                   </label>
                 </div>
+              </div>
+
+              <div className="sm:col-span-3 border-t border-neutral-800 pt-3">
+                <label className="flex items-center gap-2.5 text-xs font-semibold uppercase tracking-wider text-neutral-300 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={isBreaking}
+                    disabled={isSubmitting}
+                    onChange={(e) => {
+                      setIsBreaking(e.target.checked);
+                      if (e.target.checked) setPostType('news');
+                    }}
+                    className="size-4 rounded border-neutral-700 bg-neutral-900 text-orange-500 focus:ring-0"
+                  />
+                  <span className="text-orange-400 font-bold">Mark as Breaking News ⚡</span>
+                  <span className="text-neutral-500 text-[11px] font-normal lowercase">
+                    (Featured prominently on the homepage Breaking News section)
+                  </span>
+                </label>
               </div>
             </div>
 

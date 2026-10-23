@@ -15,10 +15,10 @@ export async function OPTIONS(request: NextRequest) {
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
-    const statusParam = searchParams.get('status') as 'published' | 'draft' | 'all' | null;
+    const statusParam = searchParams.get('status') as 'published' | 'draft' | 'pending_review' | 'all' | null;
     const filter = statusParam || 'published';
 
-    // If requesting drafts or all, require admin authentication
+    // If requesting drafts, pending_review, or all, require admin authentication
     if (filter !== 'published') {
       const token = request.cookies.get(ADMIN_COOKIE_NAME)?.value;
       const isAuthenticated = await verifySessionToken(token);
@@ -62,7 +62,7 @@ export async function POST(request: NextRequest) {
 
   try {
     const body = await request.json();
-    const { title, slug, excerpt, content, category, image, status, author } = body;
+    const { title, slug, excerpt, content, category, image, status, author, is_breaking, post_type } = body;
 
     if (!title || !title.trim()) {
       return NextResponse.json(
@@ -87,6 +87,8 @@ export async function POST(request: NextRequest) {
       image,
       status: status || 'published',
       author,
+      is_breaking: Boolean(is_breaking),
+      post_type,
     });
 
     // Revalidate public feeds so updates appear instantly without redeployment

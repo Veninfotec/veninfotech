@@ -18,6 +18,12 @@ export function isR2Configured(): boolean {
   );
 }
 
+function getR2BaseUrl(): string {
+  const raw = process.env.R2_PUBLIC_URL || '';
+  const clean = raw.split('#')[0].trim().replace(/\/$/, '');
+  return clean || `https://${process.env.R2_BUCKET_NAME}.r2.dev`;
+}
+
 export async function uploadImageBuffer(
   buffer: Buffer,
   fileName: string,
@@ -35,10 +41,7 @@ export async function uploadImageBuffer(
       })
     );
 
-    const baseUrl =
-      process.env.R2_PUBLIC_URL?.replace(/\/$/, '') ||
-      `https://${process.env.R2_BUCKET_NAME}.r2.dev`;
-
+    const baseUrl = getR2BaseUrl();
     return `${baseUrl}/${key}`;
   } catch (error) {
     console.error('R2 uploadImageBuffer Error:', error);
@@ -46,7 +49,7 @@ export async function uploadImageBuffer(
   }
 }
 
-export async function uploadImageFromUrl(imageUrl: string, fileName: string) {
+export async function uploadImageFromUrl(imageUrl: string, fileName: string): Promise<string> {
   try {
     const response = await fetch(imageUrl);
     if (!response.ok) throw new Error(`Failed to fetch image from URL: ${imageUrl}`);
@@ -65,7 +68,8 @@ export async function uploadImageFromUrl(imageUrl: string, fileName: string) {
       })
     );
 
-    return `${process.env.R2_PUBLIC_URL}/${key}`;
+    const baseUrl = getR2BaseUrl();
+    return `${baseUrl}/${key}`;
   } catch (error) {
     console.error('R2 Upload Error:', error);
     throw error;

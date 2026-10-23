@@ -14,9 +14,32 @@ export interface Post {
   content?: string;
   category: string;
   image: string;
-  status: 'draft' | 'published';
+  status: 'draft' | 'pending_review' | 'published';
   author: string;
   views: number;
+  is_breaking?: boolean;
+  post_type?: 'blog' | 'news';
+}
+
+/**
+ * Determines whether an article is strictly a news item vs a regular blog.
+ * An article is classified as NEWS if:
+ * 1. Explicitly marked as breaking news (is_breaking = true)
+ * 2. Explicitly assigned post_type = 'news'
+ * 3. Categorized under 'NEWS', 'WORLD NEWS', or 'BREAKING'
+ */
+export function isNewsArticle(post: {
+  post_type?: string | null;
+  category?: string | null;
+  is_breaking?: boolean | null;
+}): boolean {
+  if (post.is_breaking) return true;
+  if (post.post_type === 'news') return true;
+  const cat = (post.category || '').trim().toUpperCase();
+  if (cat === 'NEWS' || cat === 'WORLD NEWS' || cat === 'BREAKING NEWS' || cat === 'BREAKING') {
+    return true;
+  }
+  return false;
 }
 
 const CONTENT_DIR = path.join(process.cwd(), 'content');
@@ -38,7 +61,7 @@ function formatTimestamp(d: Date | string | number): { label: string; timestamp:
  * Admin studio uses 'all' or 'draft'.
  */
 export const getAllPosts = cache(
-  async (statusFilter: 'published' | 'draft' | 'all' = 'published'): Promise<Post[]> => {
+  async (statusFilter: 'published' | 'draft' | 'pending_review' | 'all' = 'published'): Promise<Post[]> => {
     try {
       let query;
       if (statusFilter === 'all') {
@@ -53,6 +76,8 @@ export const getAllPosts = cache(
             p.image,
             p.status,
             p.author,
+            COALESCE(p.is_breaking, false) AS is_breaking,
+            COALESCE(p.post_type, 'blog') AS post_type,
             p.created_at,
             COALESCE(v.view_count, p.views, 0) AS views
           FROM posts p
@@ -71,6 +96,8 @@ export const getAllPosts = cache(
             p.image,
             p.status,
             p.author,
+            COALESCE(p.is_breaking, false) AS is_breaking,
+            COALESCE(p.post_type, 'blog') AS post_type,
             p.created_at,
             COALESCE(v.view_count, p.views, 0) AS views
           FROM posts p
@@ -93,12 +120,20 @@ export const getAllPosts = cache(
           image: string | null;
           status: string | null;
           author: string | null;
+          is_breaking?: boolean | null;
+          post_type?: string | null;
           created_at: string | Date;
           views: number | string | null;
         }
 
         const dbPosts = (rows as unknown as DbPostRow[]).map((r) => {
           const { label, timestamp } = formatTimestamp(r.created_at);
+          const rawPostType = r.post_type as 'blog' | 'news' | undefined;
+          const inferredType: 'blog' | 'news' =
+            rawPostType === 'news' || isNewsArticle({ category: r.category, is_breaking: Boolean(r.is_breaking) })
+              ? 'news'
+              : 'blog';
+
           return {
             id: r.id,
             slug: r.slug,
@@ -109,8 +144,10 @@ export const getAllPosts = cache(
             content: r.content || '',
             category: r.category || 'TECH',
             image: r.image || '/images/hero/hero-bg.jpg',
-            status: (r.status as 'draft' | 'published') || 'published',
+            status: (r.status as 'draft' | 'pending_review' | 'published') || 'published',
             author: r.author || 'Editorial Team',
+            is_breaking: Boolean(r.is_breaking),
+            post_type: inferredType,
             views: Number(r.views || 0),
           };
         });
@@ -237,6 +274,8 @@ export const getPostBySlug = cache(async (slug: string): Promise<Post | null> =>
         p.image,
         p.status,
         p.author,
+        COALESCE(p.is_breaking, false) AS is_breaking,
+        COALESCE(p.post_type, 'blog') AS post_type,
         p.created_at,
         COALESCE(v.view_count, p.views, 0) AS views
       FROM posts p
@@ -248,6 +287,12 @@ export const getPostBySlug = cache(async (slug: string): Promise<Post | null> =>
     if (rows && rows.length > 0) {
       const r = rows[0];
       const { label, timestamp } = formatTimestamp(r.created_at);
+      const rawPostType = r.post_type as 'blog' | 'news' | undefined;
+      const inferredType: 'blog' | 'news' =
+        rawPostType === 'news' || isNewsArticle({ category: r.category, is_breaking: Boolean(r.is_breaking) })
+          ? 'news'
+          : 'blog';
+
       return {
         id: r.id,
         slug: r.slug,
@@ -258,8 +303,10 @@ export const getPostBySlug = cache(async (slug: string): Promise<Post | null> =>
         content: r.content || '',
         category: r.category || 'TECH',
         image: r.image || '/images/hero/hero-bg.jpg',
-        status: (r.status as 'draft' | 'published') || 'published',
+        status: (r.status as 'draft' | 'pending_review' | 'published') || 'published',
         author: r.author || 'Editorial Team',
+        is_breaking: Boolean(r.is_breaking),
+        post_type: inferredType,
         views: Number(r.views || 0),
       };
     }
@@ -284,12 +331,56 @@ export const getPostBySlug = cache(async (slug: string): Promise<Post | null> =>
       image: String(data.image || '/images/hero/hero-bg.jpg'),
       status: 'published',
       author: String(data.author || 'Editorial Team'),
+      is_breaking: false,
+      post_type: 'blog',
       views: 0,
     };
   } catch {
     return null;
   }
 });
+
+/**
+ * Fetch dedicated news articles for the Breaking & Recent News homepage section.
+ * STRICT: Only returns articles that are genuine news (never blogs).
+ * If no news articles exist yet, returns null/empty so the section is completely hidden.
+ */
+export const getNewsPosts = cache(
+  async (): Promise<{ breaking: Post | null; recent: Post[] }> => {
+    try {
+      const allPublished = await getAllPosts('published');
+      if (!allPublished || allPublished.length === 0) {
+        return { breaking: null, recent: [] };
+      }
+
+      // Filter strictly to published NEWS articles (never regular blogs)
+      const newsArticles = allPublished.filter((p) => isNewsArticle(p));
+
+      // Until news is created/published, do not return any articles (keeps Breaking & Popular section hidden)
+      if (newsArticles.length === 0) {
+        return { breaking: null, recent: [] };
+      }
+
+      // Priority 1: An article explicitly marked as breaking news
+      // Priority 2: The newest published news article
+      const breakingItem =
+        newsArticles.find((p) => p.is_breaking) || newsArticles[0];
+
+      // Recent news items: other news articles excluding the breaking one (never blogs)
+      const recentItems = newsArticles
+        .filter((p) => (breakingItem ? p.id !== breakingItem.id && p.slug !== breakingItem.slug : true))
+        .slice(0, 4);
+
+      return {
+        breaking: breakingItem || null,
+        recent: recentItems,
+      };
+    } catch (err) {
+      console.warn('Failed to fetch news posts:', err);
+      return { breaking: null, recent: [] };
+    }
+  },
+);
 
 /**
  * Create a new post in Neon database.
@@ -301,8 +392,10 @@ export async function createPost(post: {
   content: string;
   category?: string;
   image?: string;
-  status?: 'draft' | 'published';
+  status?: 'draft' | 'pending_review' | 'published';
   author?: string;
+  is_breaking?: boolean;
+  post_type?: 'blog' | 'news';
 }): Promise<Post> {
   const slug =
     post.slug?.trim() ||
@@ -318,11 +411,13 @@ export async function createPost(post: {
   const image = post.image?.trim() || '/images/hero/hero-bg.jpg';
   const excerpt = post.excerpt?.trim() || '';
   const content = post.content || '';
+  const isBreaking = Boolean(post.is_breaking);
+  const postType = post.post_type || (isBreaking || category === 'NEWS' || category === 'WORLD NEWS' ? 'news' : 'blog');
 
   const rows = await sql`
-    INSERT INTO posts (slug, title, excerpt, content, category, image, status, author)
-    VALUES (${slug}, ${post.title}, ${excerpt}, ${content}, ${category}, ${image}, ${status}, ${author})
-    RETURNING id, slug, title, excerpt, content, category, image, status, author, created_at
+    INSERT INTO posts (slug, title, excerpt, content, category, image, status, author, is_breaking, post_type)
+    VALUES (${slug}, ${post.title}, ${excerpt}, ${content}, ${category}, ${image}, ${status}, ${author}, ${isBreaking}, ${postType})
+    RETURNING id, slug, title, excerpt, content, category, image, status, author, is_breaking, post_type, created_at
   `;
 
   const r = rows[0];
@@ -340,6 +435,8 @@ export async function createPost(post: {
     image: r.image,
     status: r.status,
     author: r.author,
+    is_breaking: Boolean(r.is_breaking),
+    post_type: (r.post_type as 'blog' | 'news') || 'blog',
     views: 0,
   };
 }
@@ -356,10 +453,15 @@ export async function updatePost(
     content?: string;
     category?: string;
     image?: string;
-    status?: 'draft' | 'published';
+    status?: 'draft' | 'pending_review' | 'published';
     author?: string;
+    is_breaking?: boolean;
+    post_type?: 'blog' | 'news';
   },
 ): Promise<Post> {
+  const isBreakingVal = post.is_breaking !== undefined ? post.is_breaking : null;
+  const postTypeVal = post.post_type !== undefined ? post.post_type : null;
+
   const rows = await sql`
     UPDATE posts
     SET 
@@ -367,13 +469,15 @@ export async function updatePost(
       slug = COALESCE(${post.slug}, slug),
       excerpt = COALESCE(${post.excerpt}, excerpt),
       content = COALESCE(${post.content}, content),
-      category = COALESCE(${post.category?.toUpperCase()}, category),
+      category = COALESCE(${post.category ? post.category.toUpperCase() : null}, category),
       image = COALESCE(${post.image}, image),
       status = COALESCE(${post.status}, status),
       author = COALESCE(${post.author}, author),
+      is_breaking = COALESCE(${isBreakingVal}, is_breaking),
+      post_type = COALESCE(${postTypeVal}, post_type),
       updated_at = CURRENT_TIMESTAMP
     WHERE id = ${id}
-    RETURNING id, slug, title, excerpt, content, category, image, status, author, created_at
+    RETURNING id, slug, title, excerpt, content, category, image, status, author, is_breaking, post_type, created_at
   `;
 
   if (!rows || rows.length === 0) {
@@ -395,6 +499,8 @@ export async function updatePost(
     image: r.image,
     status: r.status,
     author: r.author,
+    is_breaking: Boolean(r.is_breaking),
+    post_type: (r.post_type as 'blog' | 'news') || 'blog',
     views: 0,
   };
 }

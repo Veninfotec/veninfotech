@@ -28,12 +28,17 @@ async function migrate() {
         image VARCHAR(1000) NOT NULL DEFAULT '',
         status VARCHAR(20) NOT NULL DEFAULT 'published',
         author VARCHAR(100) NOT NULL DEFAULT 'Editorial Team',
+        is_breaking BOOLEAN DEFAULT FALSE,
         views INTEGER NOT NULL DEFAULT 0,
         created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
       );
     `;
-    console.log('✓ Created/verified posts table');
+    await sql`
+      ALTER TABLE posts ADD COLUMN IF NOT EXISTS is_breaking BOOLEAN DEFAULT FALSE;
+      ALTER TABLE posts ADD COLUMN IF NOT EXISTS post_type VARCHAR(20) DEFAULT 'blog';
+    `;
+    console.log('✓ Created/verified posts table with is_breaking and post_type columns');
 
     // Create newsletter_subscribers table for monetization / audience capture
     await sql`

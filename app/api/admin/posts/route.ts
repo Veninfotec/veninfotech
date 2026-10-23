@@ -56,6 +56,8 @@ export async function POST(request: NextRequest) {
       image,
       author,
       status,
+      is_breaking,
+      post_type,
     } = body;
 
     // 1. Validation
@@ -79,7 +81,11 @@ export async function POST(request: NextRequest) {
     const cleanExcerpt = (excerpt?.trim() || '').replace(/\r?\n/g, ' ');
     const cleanImage = image?.trim() || '/images/hero/hero-bg.jpg';
     const cleanAuthor = author?.trim() || 'Editorial Team';
-    const cleanStatus = status === 'draft' ? 'draft' : 'published';
+    const cleanStatus = status === 'draft' || status === 'pending_review' ? status : 'published';
+    const isBreaking = Boolean(is_breaking);
+    const resolvedPostType = post_type === 'news' || cleanCategory === 'NEWS' || cleanCategory === 'WORLD NEWS' || isBreaking
+      ? 'news'
+      : 'blog';
 
     // 2. Generate and sanitize URL slug
     let finalSlug = sanitizeSlug(slug?.trim() || cleanTitle);
@@ -89,8 +95,8 @@ export async function POST(request: NextRequest) {
 
     // 3. Primary Storage: Neon Database (Persists in production & serverless environments like Vercel)
     await sql`
-      INSERT INTO posts (slug, title, excerpt, content, category, image, status, author)
-      VALUES (${finalSlug}, ${cleanTitle}, ${cleanExcerpt}, ${cleanContent}, ${cleanCategory}, ${cleanImage}, ${cleanStatus}, ${cleanAuthor})
+      INSERT INTO posts (slug, title, excerpt, content, category, image, status, author, is_breaking, post_type)
+      VALUES (${finalSlug}, ${cleanTitle}, ${cleanExcerpt}, ${cleanContent}, ${cleanCategory}, ${cleanImage}, ${cleanStatus}, ${cleanAuthor}, ${isBreaking}, ${resolvedPostType})
       ON CONFLICT (slug) DO UPDATE SET
         title = EXCLUDED.title,
         excerpt = EXCLUDED.excerpt,
@@ -99,6 +105,8 @@ export async function POST(request: NextRequest) {
         image = EXCLUDED.image,
         status = EXCLUDED.status,
         author = EXCLUDED.author,
+        is_breaking = EXCLUDED.is_breaking,
+        post_type = EXCLUDED.post_type,
         updated_at = CURRENT_TIMESTAMP
     `;
 
