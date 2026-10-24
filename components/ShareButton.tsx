@@ -22,11 +22,18 @@ export default function ShareButton({
   const [canNativeShare, setCanNativeShare] = useState(false);
 
   useEffect(() => {
-    const computedUrl = url
-      ? url.startsWith('http')
-        ? url
-        : `${window.location.origin}${url}`
-      : window.location.href;
+    let computedUrl = url || (typeof window !== 'undefined' ? window.location.href : '');
+    const siteDomain = 'https://veninfotech.net';
+
+    if (computedUrl.startsWith('/')) {
+      const origin = typeof window !== 'undefined' && window.location.hostname !== 'localhost' && !window.location.hostname.includes('127.0.0.1')
+        ? window.location.origin
+        : siteDomain;
+      computedUrl = `${origin}${computedUrl}`;
+    } else if (computedUrl.includes('localhost') || computedUrl.includes('127.0.0.1')) {
+      computedUrl = computedUrl.replace(/https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?/, siteDomain);
+    }
+
     setFullUrl(computedUrl);
 
     if (typeof navigator !== 'undefined' && typeof navigator.share === 'function') {

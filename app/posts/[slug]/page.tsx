@@ -30,11 +30,25 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const siteUrl = 'https://veninfotech.net';
   const postUrl = `${siteUrl}/posts/${post.slug}`;
 
-  // Ensure absolute URL for social crawlers (Facebook, LinkedIn, X, WhatsApp)
+  // Ensure absolute HTTPS URL for social crawlers (Facebook, LinkedIn, X, WhatsApp)
   let imageUrl = post.image || '/images/hero/hero-bg.jpg';
-  if (imageUrl && !imageUrl.startsWith('http')) {
+  if (imageUrl.startsWith('http://')) {
+    imageUrl = imageUrl.replace(/^http:\/\//, 'https://');
+  } else if (!imageUrl.startsWith('http')) {
     imageUrl = `${siteUrl}${imageUrl.startsWith('/') ? imageUrl : `/${imageUrl}`}`;
   }
+
+  // Detect image mime type for social scrapers
+  let imageType = 'image/jpeg';
+  if (imageUrl.toLowerCase().includes('.png')) {
+    imageType = 'image/png';
+  } else if (imageUrl.toLowerCase().includes('.webp')) {
+    imageType = 'image/webp';
+  }
+
+  const isoPublishedTime = post.timestamp
+    ? new Date(post.timestamp).toISOString()
+    : new Date().toISOString();
 
   const description =
     post.excerpt ||
@@ -54,24 +68,25 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
       siteName: 'Veninfotech',
       locale: 'en_US',
       type: 'article',
-      publishedTime: post.date,
+      publishedTime: isoPublishedTime,
+      modifiedTime: isoPublishedTime,
       authors: [post.author || 'Veninfotech Editorial Team'],
-      images: imageUrl
-        ? [
-            {
-              url: imageUrl,
-              width: 1200,
-              height: 630,
-              alt: post.title,
-            },
-          ]
-        : undefined,
+      images: [
+        {
+          url: imageUrl,
+          secureUrl: imageUrl,
+          width: 1200,
+          height: 630,
+          type: imageType,
+          alt: post.title,
+        },
+      ],
     },
     twitter: {
       card: 'summary_large_image',
       title: post.title,
       description,
-      images: imageUrl ? [imageUrl] : undefined,
+      images: [imageUrl],
       creator: '@veninfotech',
       site: '@veninfotech',
     },
@@ -279,7 +294,7 @@ export default async function PostPage({ params }: PageProps) {
           <ShareButton
             title={post.title}
             excerpt={post.excerpt}
-            url={`/posts/${post.slug}`}
+            url={`https://veninfotech.net/posts/${post.slug}`}
           />
         </div>
 
