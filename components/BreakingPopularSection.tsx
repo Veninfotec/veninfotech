@@ -120,7 +120,7 @@ export default function BreakingPopularSection({
                   Recent News
                 </h2>
                 <Link
-                  href="/category/news"
+                  href="/news"
                   className="text-xs font-bold uppercase tracking-wider text-[#1365A4] hover:underline"
                 >
                   View All News &rarr;

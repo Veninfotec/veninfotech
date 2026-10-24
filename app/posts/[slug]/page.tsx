@@ -6,6 +6,8 @@ import Image from 'next/image';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import ShareButton from '@/components/ShareButton';
+import { cookies } from 'next/headers';
+import { ADMIN_COOKIE_NAME, verifySessionToken } from '@/lib/auth';
 
 export const instant = false; // Prevents Next.js prerender blocking errors on dynamic DB calls
 
@@ -17,10 +19,11 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const { slug } = await params;
   const post = await getPostBySlug(slug);
 
-  if (!post) {
+  if (!post || post.status !== 'published') {
     return {
       title: 'Post Not Found',
-      description: 'The requested article could not be found on Veninfotech.',
+      description: 'The requested article could not be found or has not been published yet.',
+      robots: { index: false, follow: false },
     };
   }
 
@@ -81,14 +84,25 @@ export default async function PostPage({ params }: PageProps) {
   // 1. Fetch post from database (with fallback to markdown)
   const post = await getPostBySlug(slug);
 
-  if (!post) {
+  // 2. Check if viewer is an authenticated administrator
+  let isAdmin = false;
+  try {
+    const cookieStore = await cookies();
+    const token = cookieStore.get(ADMIN_COOKIE_NAME)?.value;
+    isAdmin = await verifySessionToken(token);
+  } catch {
+    isAdmin = false;
+  }
+
+  // 3. If post does not exist OR is unpublished and viewer is NOT an admin, show 404
+  if (!post || (post.status !== 'published' && !isAdmin)) {
     return (
       <div className="min-h-screen bg-white text-zinc-900 p-8 flex flex-col items-center justify-center">
         <div className="max-w-md text-center">
           <span className="text-4xl">📰</span>
           <h1 className="text-3xl font-bold mt-4 mb-2 text-zinc-900">Post not found</h1>
           <p className="text-zinc-500 mb-6 text-sm">
-            The article you are looking for does not exist or may have been unpublished.
+            The article you are looking for does not exist or has not been published yet.
           </p>
           <div className="flex justify-center">
             <Link
@@ -103,29 +117,38 @@ export default async function PostPage({ params }: PageProps) {
     );
   }
 
-  // 2. Increment view count in Neon DB
+  // 4. Increment view count in Neon DB only for published articles
   let currentViews = post.views || 0;
-  try {
-    const updated = await sql`
-      INSERT INTO post_views (slug, view_count) 
-      VALUES (${slug}, 1) 
-      ON CONFLICT (slug) 
-      DO UPDATE SET view_count = post_views.view_count + 1
-      RETURNING view_count;
-    `;
-    if (updated && updated.length > 0) {
-      currentViews = Number(updated[0].view_count);
+  if (post.status === 'published') {
+    try {
+      const updated = await sql`
+        INSERT INTO post_views (slug, view_count) 
+        VALUES (${slug}, 1) 
+        ON CONFLICT (slug) 
+        DO UPDATE SET view_count = post_views.view_count + 1
+        RETURNING view_count;
+      `;
+      if (updated && updated.length > 0) {
+        currentViews = Number(updated[0].view_count);
+      }
+    } catch (err) {
+      console.error('Failed to increment view count:', err);
     }
-  } catch (err) {
-    console.error('Failed to increment view count:', err);
   }
 
   const contentToRender = post.content || post.excerpt || '';
 
   return (
     <main className="min-h-screen bg-white text-zinc-900 selection:bg-zinc-900 selection:text-white">
+      {/* Admin Draft Preview Notification Banner */}
+      {post.status !== 'published' && (
+        <div className="bg-amber-500 text-neutral-950 px-4 py-2 text-center text-xs font-bold uppercase tracking-wider sticky top-0 z-50 shadow-md">
+          ⚠️ Admin Preview Mode • This article is in Draft status and is HIDDEN from public visitors.
+        </div>
+      )}
+
       {/* Top Navigation Bar */}
-      <div className="border-b border-zinc-200 bg-white/80 backdrop-blur-md sticky top-0 z-40">
+      <div className={`border-b border-zinc-200 bg-white/80 backdrop-blur-md sticky ${post.status !== 'published' ? 'top-8' : 'top-0'} z-40`}>
         <div className="max-w-4xl mx-auto px-4 sm:px-6 py-3.5 flex items-center justify-between">
           <Link
             href="/"

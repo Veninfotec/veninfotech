@@ -22,7 +22,6 @@ const CATEGORY_ITEMS: NavItem[] = [
 
 const SECONDARY_ITEMS: NavItem[] = [
   { id: 'about', label: 'About', href: '/about' },
-  { id: 'contact', label: 'Contact', href: '#contact' },
 ];
 
 export default function Navbar() {
@@ -117,7 +116,8 @@ export default function Navbar() {
   };
 
   const isHomeActive = pathname === '/' && !activeCategory;
-  const isAnyCategoryActive = Boolean(activeCategory);
+  const isNewsActive = pathname === '/news' || pathname.startsWith('/news/');
+  const isAnyCategoryActive = Boolean(activeCategory) || pathname.startsWith('/category/');
 
   return (
     <header className="sticky top-0 z-40 w-full border-b border-white/10 bg-black">
@@ -159,32 +159,27 @@ export default function Navbar() {
               </Link>
             </li>
 
-            {/* Expanded Categories (Visible on xl screens and above) */}
-            {CATEGORY_ITEMS.map((item) => {
-              const active = activeCategory === item.id;
-              return (
-                <li key={item.id} className="hidden h-full xl:flex">
-                  <Link
-                    href={item.href}
-                    onClick={() => setActiveCategory(item.id)}
-                    className={`relative flex h-full items-center px-2.5 xl:px-3 text-xs font-semibold uppercase tracking-wider transition-colors ${
-                      active
-                        ? 'text-white'
-                        : 'text-neutral-300 hover:text-white'
-                    }`}
-                  >
-                    {item.label}
-                    {active && (
-                      <span className="absolute bottom-0 left-0 right-0 h-[2.5px] bg-brand shadow-[0_0_8px_rgba(19,101,164,0.6)]" />
-                    )}
-                  </Link>
-                </li>
-              );
-            })}
+            {/* NEWS Link */}
+            <li className="h-full">
+              <Link
+                href="/news"
+                onClick={() => setActiveCategory(null)}
+                className={`relative flex h-full items-center px-2.5 xl:px-3 text-xs font-semibold uppercase tracking-wider transition-colors ${
+                  isNewsActive
+                    ? 'text-white'
+                    : 'text-neutral-300 hover:text-white'
+                }`}
+              >
+                News
+                {isNewsActive && (
+                  <span className="absolute bottom-0 left-0 right-0 h-[2.5px] bg-brand shadow-[0_0_8px_rgba(19,101,164,0.6)]" />
+                )}
+              </Link>
+            </li>
 
-            {/* Collapsed Categories Dropdown (Visible when responsive: below xl, down to md) */}
+            {/* Categories Dropdown (Always a clean dropdown in default web view) */}
             <li
-              className="relative hidden h-full items-center md:flex xl:hidden"
+              className="relative flex h-full items-center"
               ref={categoriesDropdownRef}
               onMouseEnter={() => setIsCategoriesOpen(true)}
               onMouseLeave={() => setIsCategoriesOpen(false)}
@@ -194,7 +189,7 @@ export default function Navbar() {
                 onClick={() => setIsCategoriesOpen((prev) => !prev)}
                 aria-expanded={isCategoriesOpen}
                 aria-haspopup="true"
-                className={`relative flex h-full items-center gap-1 px-2.5 text-xs font-semibold uppercase tracking-wider transition-colors ${
+                className={`relative flex h-full items-center gap-1.5 px-2.5 xl:px-3 text-xs font-semibold uppercase tracking-wider transition-colors ${
                   isAnyCategoryActive
                     ? 'text-white'
                     : 'text-neutral-300 hover:text-white'
@@ -222,7 +217,7 @@ export default function Navbar() {
 
               {/* Dropdown Menu */}
               {isCategoriesOpen && (
-                <div className="absolute left-0 top-full z-50 min-w-44 rounded-md border border-neutral-800 bg-[#0e0e11]/95 py-2 shadow-2xl backdrop-blur-md">
+                <div className="absolute left-0 top-full z-50 min-w-48 rounded-md border border-neutral-800 bg-[#0e0e11]/95 py-2 shadow-2xl backdrop-blur-md">
                   {CATEGORY_ITEMS.map((item) => {
                     const active = activeCategory === item.id;
                     return (
@@ -233,7 +228,7 @@ export default function Navbar() {
                           setActiveCategory(item.id);
                           setIsCategoriesOpen(false);
                         }}
-                        className={`flex items-center justify-between px-4 py-2 text-xs font-medium uppercase tracking-wider transition-colors ${
+                        className={`flex items-center justify-between px-4 py-2.5 text-xs font-medium uppercase tracking-wider transition-colors ${
                           active
                             ? 'bg-brand/10 text-brand font-bold'
                             : 'text-neutral-300 hover:bg-neutral-800/70 hover:text-white'
@@ -250,7 +245,7 @@ export default function Navbar() {
               )}
             </li>
 
-            {/* About & Contact */}
+            {/* About Link */}
             {SECONDARY_ITEMS.map((item) => {
               const active = pathname === item.href;
               return (
@@ -444,6 +439,22 @@ export default function Navbar() {
                 }`}
               >
                 Home
+              </Link>
+            </li>
+
+            {/* News */}
+            <li>
+              <Link
+                href="/news"
+                onClick={() => {
+                  setActiveCategory(null);
+                  setIsMobileMenuOpen(false);
+                }}
+                className={`block py-2 text-xs font-semibold uppercase tracking-wider transition-colors ${
+                  isNewsActive ? 'text-brand font-bold' : 'text-neutral-300 hover:text-white'
+                }`}
+              >
+                News
               </Link>
             </li>
 

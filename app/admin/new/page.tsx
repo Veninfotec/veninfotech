@@ -224,26 +224,49 @@ export default function NewPostAdminPage() {
 
           {/* Success Alert Banner */}
           {successInfo && (
-            <div className="mb-8 border border-emerald-500/40 bg-emerald-950/30 p-5 rounded-lg shadow-xl animate-hero-fade">
+            <div className={`mb-8 border p-5 rounded-lg shadow-xl animate-hero-fade ${
+              status === 'published' ? 'border-emerald-500/40 bg-emerald-950/30' : 'border-amber-500/40 bg-amber-950/30'
+            }`}>
               <div className="flex items-start justify-between gap-4">
                 <div className="flex items-start gap-3">
-                  <span className="text-emerald-400 text-xl font-bold">✓</span>
+                  <span className={`${status === 'published' ? 'text-emerald-400' : 'text-amber-400'} text-xl font-bold`}>✓</span>
                   <div>
-                    <h3 className="text-sm font-bold uppercase tracking-wider text-emerald-300">
-                      Article Successfully Published!
+                    <h3 className={`text-sm font-bold uppercase tracking-wider ${status === 'published' ? 'text-emerald-300' : 'text-amber-300'}`}>
+                      {status === 'published' ? 'Article Successfully Published Live!' : 'Draft Saved (Hidden from Public)'}
                     </h3>
                     <p className="mt-1 text-xs text-neutral-300">
-                      Article successfully saved to database and live at{' '}
-                      <code className="text-emerald-400 font-mono font-bold">{successInfo.path}</code>.
+                      {status === 'published' ? (
+                        <>Article is now live on public feeds and accessible at <code className="text-emerald-400 font-mono font-bold">{successInfo.path}</code>.</>
+                      ) : (
+                        <>Article has been safely saved as a <strong className="text-amber-400">Draft</strong>. It is <strong className="text-amber-400">hidden from public view</strong> until you choose to publish it live.</>
+                      )}
                     </p>
                     <div className="mt-4 flex flex-wrap items-center gap-3">
-                      <Link
-                        href={successInfo.path}
-                        target="_blank"
-                        className="inline-flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold uppercase tracking-wider px-4 py-2 rounded transition-colors shadow-md"
-                      >
-                        <span>View Live Article &rarr;</span>
-                      </Link>
+                      {status === 'published' ? (
+                        <>
+                          <Link
+                            href={successInfo.path}
+                            target="_blank"
+                            className="inline-flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold uppercase tracking-wider px-4 py-2 rounded transition-colors shadow-md"
+                          >
+                            <span>View Live Article &rarr;</span>
+                          </Link>
+                          <Link
+                            href="/news"
+                            target="_blank"
+                            className="inline-flex items-center gap-1.5 bg-[#1365A4] hover:bg-[#0e4c7c] text-white text-xs font-bold uppercase tracking-wider px-4 py-2 rounded transition-colors shadow-md"
+                          >
+                            <span>View News Feed ↗</span>
+                          </Link>
+                        </>
+                      ) : (
+                        <Link
+                          href="/admin/blogs"
+                          className="inline-flex items-center gap-1.5 bg-amber-600 hover:bg-amber-500 text-white text-xs font-bold uppercase tracking-wider px-4 py-2 rounded transition-colors shadow-md"
+                        >
+                          <span>Manage in Admin Articles &rarr;</span>
+                        </Link>
+                      )}
                       <button
                         type="button"
                         onClick={handleReset}
@@ -349,7 +372,13 @@ export default function NewPostAdminPage() {
                   id="article-category"
                   disabled={isSubmitting}
                   value={category}
-                  onChange={(e) => setCategory(e.target.value)}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    setCategory(val);
+                    if (val.toLowerCase() === 'news') {
+                      setPostType('news');
+                    }
+                  }}
                   className="w-full bg-[#0a0a0c] border border-neutral-700 rounded-md px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-[#1365A4] transition-colors disabled:opacity-50"
                 >
                   {CATEGORY_OPTIONS.map((cat) => (
@@ -412,7 +441,12 @@ export default function NewPostAdminPage() {
                       name="post_type"
                       disabled={isSubmitting}
                       checked={postType === 'news'}
-                      onChange={() => setPostType('news')}
+                      onChange={() => {
+                        setPostType('news');
+                        if (category === 'Technology') {
+                          setCategory('News');
+                        }
+                      }}
                       className="accent-[#1365A4]"
                     />
                     <span className="text-orange-400 font-semibold">⚡ News Story</span>
@@ -434,7 +468,7 @@ export default function NewPostAdminPage() {
                       onChange={() => setStatus('published')}
                       className="accent-[#1365A4]"
                     />
-                    <span className="text-emerald-400 font-semibold">Live Feed</span>
+                    <span className="text-emerald-400 font-semibold">Publish Live (Visible on Site)</span>
                   </label>
                   <label className="inline-flex items-center gap-1.5 text-xs text-neutral-300 cursor-pointer">
                     <input
@@ -445,7 +479,7 @@ export default function NewPostAdminPage() {
                       onChange={() => setStatus('draft')}
                       className="accent-[#1365A4]"
                     />
-                    <span className="text-amber-400 font-semibold">Draft</span>
+                    <span className="text-amber-400 font-semibold">Save as Draft (Hidden from Site)</span>
                   </label>
                 </div>
               </div>
@@ -648,14 +682,14 @@ Write your report in Markdown format...
                 {isSubmitting ? (
                   <>
                     <span className="size-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                    <span>Writing Markdown &amp; Publishing...</span>
+                    <span>{status === 'published' ? 'Publishing Live...' : 'Saving Draft...'}</span>
                   </>
                 ) : (
                   <>
                     <svg className="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                       <path d="M5 12h14M12 5l7 7-7 7" />
                     </svg>
-                    <span>Publish Article</span>
+                    <span>{status === 'published' ? 'Publish Article Live' : 'Save as Draft'}</span>
                   </>
                 )}
               </button>

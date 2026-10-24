@@ -232,12 +232,16 @@ export const getAllPosts = cache(
 );
 
 /**
- * Fetch latest published posts for Hero banner and homepage feeds.
+ * Fetch latest published blog articles for the Hero banner and blog sections.
+ * STRICT: Only returns regular BLOG posts, never news articles.
  */
 export const getLatestPosts = cache(async (count: number = 5): Promise<Post[]> => {
   const posts = await getAllPosts('published');
-  return posts.slice(0, count);
+  const blogsOnly = posts.filter((p) => !isNewsArticle(p));
+  return blogsOnly.slice(0, count);
 });
+
+export const getLatestBlogs = getLatestPosts;
 
 /**
  * Fetch published posts matching a specific category slug (e.g. 'technology', 'science', 'economy').
@@ -329,7 +333,7 @@ export const getPostBySlug = cache(async (slug: string): Promise<Post | null> =>
       content,
       category: String(data.category || 'BLOG'),
       image: String(data.image || '/images/hero/hero-bg.jpg'),
-      status: 'published',
+      status: (data.status as 'draft' | 'pending_review' | 'published') || 'published',
       author: String(data.author || 'Editorial Team'),
       is_breaking: false,
       post_type: 'blog',
@@ -353,8 +357,8 @@ export const getNewsPosts = cache(
         return { breaking: null, recent: [] };
       }
 
-      // Filter strictly to published NEWS articles (never regular blogs)
-      const newsArticles = allPublished.filter((p) => isNewsArticle(p));
+      // Filter strictly to published NEWS articles (never regular blogs, never drafts)
+      const newsArticles = allPublished.filter((p) => isNewsArticle(p) && p.status === 'published');
 
       // Until news is created/published, do not return any articles (keeps Breaking & Popular section hidden)
       if (newsArticles.length === 0) {
@@ -381,6 +385,117 @@ export const getNewsPosts = cache(
     }
   },
 );
+
+/**
+ * News grouped by calendar day for the dedicated News tab
+ */
+export interface DayGroupedNews {
+  dateKey: string;
+  formattedDate: string;
+  relativeLabel: string;
+  isRecentDay: boolean;
+  posts: Post[];
+}
+
+/**
+ * Fetch all published news articles.
+ */
+export const getAllNewsPosts = cache(async (): Promise<Post[]> => {
+  try {
+    const allPublished = await getAllPosts('published');
+    if (!allPublished || allPublished.length === 0) return [];
+    return allPublished.filter((p) => isNewsArticle(p) && p.status === 'published');
+  } catch (err) {
+    console.warn('Failed to fetch all news posts:', err);
+    return [];
+  }
+});
+
+/**
+ * Fetch news articles grouped by calendar day.
+ * - The first group is always the most recent day (rendered as Cards View).
+ * - All subsequent groups are previous days with day separation (rendered as List View).
+ */
+export const getDayGroupedNews = cache(async (): Promise<DayGroupedNews[]> => {
+  try {
+    const news = await getAllNewsPosts();
+    if (!news || news.length === 0) return [];
+
+    const now = new Date();
+    const todayKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+
+    const yesterday = new Date(now);
+    yesterday.setDate(now.getDate() - 1);
+    const yesterdayKey = `${yesterday.getFullYear()}-${String(yesterday.getMonth() + 1).padStart(2, '0')}-${String(yesterday.getDate()).padStart(2, '0')}`;
+
+    const groupsMap = new Map<
+      string,
+      { formattedDate: string; relativeLabel: string; posts: Post[] }
+    >();
+
+    for (const post of news) {
+      const d = new Date(post.timestamp);
+      const isDateValid = !Number.isNaN(d.getTime());
+      const dateKey = isDateValid
+        ? `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+        : 'recent-day';
+
+      if (!groupsMap.has(dateKey)) {
+        let formattedDate = post.date;
+        let relativeLabel = post.date;
+
+        if (isDateValid) {
+          formattedDate = d.toLocaleDateString('en-US', {
+            weekday: 'long',
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric',
+          });
+
+          if (dateKey === todayKey) {
+            relativeLabel = 'Today';
+          } else if (dateKey === yesterdayKey) {
+            relativeLabel = 'Yesterday';
+          } else {
+            relativeLabel = d.toLocaleDateString('en-US', {
+              weekday: 'short',
+              month: 'short',
+              day: 'numeric',
+              year: 'numeric',
+            });
+          }
+        }
+
+        groupsMap.set(dateKey, {
+          formattedDate,
+          relativeLabel,
+          posts: [],
+        });
+      }
+
+      groupsMap.get(dateKey)!.posts.push(post);
+    }
+
+    const result: DayGroupedNews[] = [];
+    let isFirst = true;
+
+    for (const [dateKey, group] of groupsMap.entries()) {
+      result.push({
+        dateKey,
+        formattedDate: group.formattedDate,
+        relativeLabel: group.relativeLabel,
+        isRecentDay: isFirst,
+        posts: group.posts,
+      });
+      isFirst = false;
+    }
+
+    return result;
+  } catch (err) {
+    console.warn('Failed to group news posts by day:', err);
+    return [];
+  }
+});
 
 /**
  * Create a new post in Neon database.

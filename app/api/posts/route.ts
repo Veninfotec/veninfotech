@@ -93,6 +93,7 @@ export async function POST(request: NextRequest) {
 
     // Revalidate public feeds so updates appear instantly without redeployment
     revalidatePath('/');
+    revalidatePath('/news');
     revalidatePath(`/posts/${post.slug}`);
 
     return NextResponse.json(

@@ -136,16 +136,18 @@ ${cleanContent}
 
     // 5. Revalidate Next.js cache so the article appears immediately
     revalidatePath('/');
+    revalidatePath('/news');
     revalidatePath(`/posts/${finalSlug}`);
     revalidatePath(`/category/${cleanCategory.toLowerCase()}`);
 
     return NextResponse.json(
       {
         success: true,
-        message: 'Article successfully published.',
+        message: cleanStatus === 'published' ? 'Article successfully published live.' : 'Article saved as draft (hidden from public).',
         slug: finalSlug,
         path: `/posts/${finalSlug}`,
         file: `content/${finalSlug}.md`,
+        status: cleanStatus,
       },
       { status: 201, headers: getCorsHeaders(request) },
     );

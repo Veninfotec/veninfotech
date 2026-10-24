@@ -45,6 +45,7 @@ export async function PUT(request: NextRequest, { params }: RouteContext) {
     const updated = await updatePost(numericId, body);
 
     revalidatePath('/');
+    revalidatePath('/news');
     if (updated.slug) {
       revalidatePath(`/posts/${updated.slug}`);
     }
@@ -91,6 +92,7 @@ export async function DELETE(request: NextRequest, { params }: RouteContext) {
     await deletePost(numericId);
 
     revalidatePath('/');
+    revalidatePath('/news');
     return NextResponse.json(
       { success: true },
       { headers: getCorsHeaders(request) },
