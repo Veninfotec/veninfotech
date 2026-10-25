@@ -34,10 +34,8 @@ async function migrate() {
         updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
       );
     `;
-    await sql`
-      ALTER TABLE posts ADD COLUMN IF NOT EXISTS is_breaking BOOLEAN DEFAULT FALSE;
-      ALTER TABLE posts ADD COLUMN IF NOT EXISTS post_type VARCHAR(20) DEFAULT 'blog';
-    `;
+    await sql`ALTER TABLE posts ADD COLUMN IF NOT EXISTS is_breaking BOOLEAN DEFAULT FALSE;`;
+    await sql`ALTER TABLE posts ADD COLUMN IF NOT EXISTS post_type VARCHAR(20) DEFAULT 'blog';`;
     console.log('✓ Created/verified posts table with is_breaking and post_type columns');
 
     // Create newsletter_subscribers table for monetization / audience capture
