@@ -28,11 +28,12 @@ const FOOTER_COLUMNS: NavColumn[] = [
     ],
   },
   {
-    title: 'Company',
+    title: 'Company & Legal',
     links: [
-      { label: 'Frontpage', href: '/' },
       { label: 'About Veninfotech', href: '/about' },
-      { label: 'News Archive', href: '/news' },
+      { label: 'Contact Us', href: '/contact' },
+      { label: 'Privacy Policy', href: '/privacy-policy' },
+      { label: 'Terms & Disclaimer', href: '/terms' },
     ],
   },
 ];
@@ -210,11 +211,22 @@ export default function Footer() {
       </div>
 
       <div className="border-t border-white/10 py-6 px-4">
-        <div className="mx-auto flex w-full max-w-[1170px] flex-col items-center justify-between gap-2 text-center text-[11px] text-neutral-500 sm:flex-row">
+        <div className="mx-auto flex w-full max-w-[1170px] flex-col items-center justify-between gap-3 text-center text-[11px] text-neutral-500 sm:flex-row">
           <p>© 2026 Veninfotech. All rights reserved.</p>
-          <p className="text-neutral-600">
-            Authoritative reporting & engineering insights
-          </p>
+          <div className="flex flex-wrap items-center justify-center gap-4 text-neutral-400">
+            <Link href="/about" className="hover:text-white transition-colors">
+              About
+            </Link>
+            <Link href="/contact" className="hover:text-white transition-colors">
+              Contact
+            </Link>
+            <Link href="/privacy-policy" className="hover:text-white transition-colors">
+              Privacy Policy
+            </Link>
+            <Link href="/terms" className="hover:text-white transition-colors">
+              Terms &amp; Disclaimer
+            </Link>
+          </div>
         </div>
       </div>
     </footer>

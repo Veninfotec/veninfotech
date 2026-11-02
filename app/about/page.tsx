@@ -347,13 +347,22 @@ export default function AboutPage() {
                       Reach our editors, writers, and technical reviewers directly.
                     </p>
                   </div>
-                  <a
-                    href="mailto:vendoraglobalsolutions@gmail.com"
-                    className="inline-flex items-center gap-2 font-mono text-sm font-semibold text-[#1365A4] hover:text-[#0e4c7c] hover:underline"
-                  >
-                    <span>vendoraglobalsolutions@gmail.com</span>
-                    <span>&rarr;</span>
-                  </a>
+                  <div className="flex flex-wrap items-center gap-4">
+                    <a
+                      href="mailto:vendoraglobalsolutions@gmail.com"
+                      className="inline-flex items-center gap-2 font-mono text-sm font-semibold text-[#1365A4] hover:text-[#0e4c7c] hover:underline"
+                    >
+                      <span>vendoraglobalsolutions@gmail.com</span>
+                      <span>&rarr;</span>
+                    </a>
+                    <Link
+                      href="/contact"
+                      className="inline-flex items-center gap-1.5 rounded-lg bg-[#1365A4] px-3.5 py-2 text-xs font-bold uppercase tracking-wider text-white hover:bg-[#0e4c7c] transition-colors"
+                    >
+                      <span>Open Contact Form</span>
+                      <span>&rarr;</span>
+                    </Link>
+                  </div>
                 </div>
 
                 {/* Community & Updates Channel */}

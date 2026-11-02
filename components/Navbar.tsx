@@ -22,6 +22,7 @@ const CATEGORY_ITEMS: NavItem[] = [
 
 const SECONDARY_ITEMS: NavItem[] = [
   { id: 'about', label: 'About', href: '/about' },
+  { id: 'contact', label: 'Contact', href: '/contact' },
 ];
 
 export default function Navbar() {
