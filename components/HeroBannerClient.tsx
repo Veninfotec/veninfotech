@@ -158,7 +158,14 @@ export default function HeroBannerClient({ items }: HeroBannerClientProps) {
                 </Link>
 
                 <Link
-                  href="#latest-games"
+                  href="#editorial-feed"
+                  onClick={(e) => {
+                    const target = document.getElementById('editorial-feed');
+                    if (target) {
+                      e.preventDefault();
+                      target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    }
+                  }}
                   className="inline-flex items-center gap-2 bg-white px-4 py-3 text-xs font-bold uppercase tracking-wider text-black"
                 >
                   Explore Feed

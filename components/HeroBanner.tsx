@@ -47,7 +47,7 @@ export default async function HeroBanner() {
 
           <div className="mt-8 flex items-center gap-4">
             <Link
-              href="#latest-games"
+              href="#editorial-feed"
               className="inline-flex items-center gap-2 bg-[#1365A4] hover:bg-[#0e4c7c] text-white text-xs font-bold uppercase tracking-wider px-6 py-3.5 transition-all shadow-lg shadow-[#1365A4]/30"
             >
               <span>Explore Portal Feeds</span>
