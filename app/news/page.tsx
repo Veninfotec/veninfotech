@@ -7,6 +7,25 @@ import { getDayGroupedNews } from '@/lib/posts';
 
 export const instant = false;
 
+function getReadTimeMinutes(content?: string, excerpt?: string): number {
+  const text = `${content || ''} ${excerpt || ''}`.trim();
+  if (!text) return 1;
+  const words = text.split(/\s+/).length;
+  return Math.max(1, Math.min(10, Math.round(words / 180)));
+}
+
+function getRichNewsPreview(content?: string, excerpt?: string): string {
+  if (!content) return excerpt || '';
+  const cleaned = content
+    .replace(/^#+\s+.*$/gm, '')
+    .replace(/---\s*\*Source:[\s\S]*$/i, '')
+    .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
+    .replace(/[*_`>#]/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+  return cleaned.length > (excerpt?.length || 0) ? cleaned : excerpt || cleaned;
+}
+
 export const metadata: Metadata = {
   title: 'News Desk • Verified Dispatches & Real-Time Wire | VIT',
   description:
@@ -180,8 +199,10 @@ export default async function NewsPage() {
                           <div className="p-5 flex flex-1 flex-col justify-between">
                             <div>
                               {/* Metadata line */}
-                              <div className="flex items-center gap-2 text-[11px] font-semibold text-neutral-400 uppercase tracking-wider mb-2.5">
+                              <div className="flex flex-wrap items-center gap-2 text-[11px] font-semibold text-neutral-400 uppercase tracking-wider mb-2.5">
                                 <span>{post.date}</span>
+                                <span>•</span>
+                                <span>{getReadTimeMinutes(post.content, post.excerpt)} min read</span>
                                 <span>•</span>
                                 <span>{post.author || 'Newsroom'}</span>
                               </div>
@@ -191,10 +212,10 @@ export default async function NewsPage() {
                                 {post.title}
                               </h3>
 
-                              {/* Excerpt */}
-                              {post.excerpt && (
-                                <p className="mt-2.5 text-xs sm:text-sm text-neutral-600 line-clamp-3 leading-relaxed">
-                                  {post.excerpt}
+                              {/* Rich Factual Preview */}
+                              {(post.content || post.excerpt) && (
+                                <p className="mt-2.5 text-xs sm:text-sm text-neutral-600 line-clamp-4 leading-relaxed">
+                                  {getRichNewsPreview(post.content, post.excerpt)}
                                 </p>
                               )}
                             </div>
@@ -303,6 +324,8 @@ export default async function NewsPage() {
                                     <span>•</span>
                                     <span>{post.date}</span>
                                     <span>•</span>
+                                    <span>{getReadTimeMinutes(post.content, post.excerpt)} min read</span>
+                                    <span>•</span>
                                     <span>By {post.author || 'Newsroom'}</span>
                                     {post.is_breaking && (
                                       <>
@@ -318,9 +341,9 @@ export default async function NewsPage() {
                                   </h4>
 
                                   {/* What the news is about: Clear, generous summary */}
-                                  {post.excerpt && (
-                                    <p className="mt-2 text-xs sm:text-sm text-neutral-600 leading-relaxed line-clamp-2 sm:line-clamp-3">
-                                      {post.excerpt}
+                                  {(post.content || post.excerpt) && (
+                                    <p className="mt-2 text-xs sm:text-sm text-neutral-600 leading-relaxed line-clamp-3 sm:line-clamp-4">
+                                      {getRichNewsPreview(post.content, post.excerpt)}
                                     </p>
                                   )}
                                 </div>

@@ -68,7 +68,7 @@ export default function AdminNewsQueuePage() {
   const [editExcerpt, setEditExcerpt] = useState('');
   const [editContent, setEditContent] = useState('');
   const [editImage, setEditImage] = useState('/images/hero/hero-bg.jpg');
-  const [editAuthor, setEditAuthor] = useState('VIT AI Editorial');
+  const [editAuthor, setEditAuthor] = useState('News Desk');
   const [editIsBreaking, setEditIsBreaking] = useState(false);
 
   // Load custom API key from localStorage if saved
@@ -164,7 +164,7 @@ export default function AdminNewsQueuePage() {
     setEditExcerpt(draft.excerpt || '');
     setEditContent(draft.content || '');
     setEditImage(draft.image || '/images/hero/hero-bg.jpg');
-    setEditAuthor(draft.author || 'VIT AI Editorial');
+    setEditAuthor(draft.author || 'News Desk');
     setEditIsBreaking(Boolean(draft.is_breaking));
     setEditorMode('edit');
   };
