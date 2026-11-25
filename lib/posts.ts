@@ -55,6 +55,106 @@ function formatTimestamp(d: Date | string | number): { label: string; timestamp:
   return { label, timestamp };
 }
 
+interface DbPostRow {
+  id: number;
+  slug: string;
+  title: string;
+  excerpt: string | null;
+  content?: string | null;
+  category: string | null;
+  image: string | null;
+  status: string | null;
+  author: string | null;
+  is_breaking?: boolean | null;
+  post_type?: string | null;
+  created_at: string | Date;
+  views?: number | string | null;
+}
+
+function mapDbRowToPost(r: DbPostRow): Post {
+  const { label, timestamp } = formatTimestamp(r.created_at);
+  const rawPostType = r.post_type as 'blog' | 'news' | undefined;
+  const inferredType: 'blog' | 'news' =
+    rawPostType === 'news' || isNewsArticle({ category: r.category, is_breaking: Boolean(r.is_breaking) })
+      ? 'news'
+      : 'blog';
+
+  return {
+    id: r.id,
+    slug: r.slug,
+    title: r.title,
+    date: label,
+    timestamp,
+    excerpt: r.excerpt || '',
+    content: r.content || '',
+    category: r.category || 'TECH',
+    image: r.image || '/images/hero/hero-bg.jpg',
+    status: (r.status as 'draft' | 'pending_review' | 'published') || 'published',
+    author: r.author || 'Editorial Team',
+    is_breaking: Boolean(r.is_breaking),
+    post_type: inferredType,
+    views: Number(r.views || 0),
+  };
+}
+
+async function readLocalMarkdownPosts(excludeSlugs?: Set<string>): Promise<Post[]> {
+  try {
+    const files = (await fs.readdir(CONTENT_DIR)).filter((f) => f.endsWith('.md'));
+    const targetFiles = excludeSlugs
+      ? files.filter((f) => !excludeSlugs.has(f.replace(/\.md$/, '')))
+      : files;
+
+    if (targetFiles.length === 0) return [];
+
+    return await Promise.all(
+      targetFiles.map(async (file) => {
+        const slug = file.replace(/\.md$/, '');
+        const raw = await fs.readFile(path.join(CONTENT_DIR, file), 'utf-8');
+        const { data, content } = matter(raw);
+        const { label, timestamp } = formatTimestamp(data.date || new Date());
+        const category = String(data.category || 'TECH');
+        const isBreaking = Boolean(data.is_breaking);
+        const inferredType: 'blog' | 'news' =
+          data.post_type === 'news' || isNewsArticle({ category, is_breaking: isBreaking })
+            ? 'news'
+            : 'blog';
+
+        return {
+          slug,
+          title: String(data.title || slug),
+          date: label,
+          timestamp,
+          excerpt: String(data.excerpt || ''),
+          content,
+          category,
+          image: String(data.image || '/images/hero/hero-bg.jpg'),
+          status: (data.status as 'draft' | 'pending_review' | 'published') || 'published',
+          author: String(data.author || 'Editorial Team'),
+          is_breaking: isBreaking,
+          post_type: inferredType,
+          views: 0,
+        };
+      }),
+    );
+  } catch {
+    return [];
+  }
+}
+
+function categoriesMatch(a?: string | null, b?: string | null): boolean {
+  const normA = (a || '').trim().toUpperCase();
+  const normB = (b || '').trim().toUpperCase();
+  if (!normA || !normB) return false;
+  if (normA === normB) return true;
+  if ((normA === 'TECH' || normA === 'TECHNOLOGY') && (normB === 'TECH' || normB === 'TECHNOLOGY')) {
+    return true;
+  }
+  if ((normA === 'WORLD' || normA === 'WORLD NEWS') && (normB === 'WORLD' || normB === 'WORLD NEWS')) {
+    return true;
+  }
+  return false;
+}
+
 /**
  * Fetch all posts with option to filter by status.
  * Public views (homepage, hero, news list) use 'published'.
@@ -110,84 +210,17 @@ export const getAllPosts = cache(
       const rows = await query;
 
       if (rows && rows.length > 0) {
-        interface DbPostRow {
-          id: number;
-          slug: string;
-          title: string;
-          excerpt: string | null;
-          content: string | null;
-          category: string | null;
-          image: string | null;
-          status: string | null;
-          author: string | null;
-          is_breaking?: boolean | null;
-          post_type?: string | null;
-          created_at: string | Date;
-          views: number | string | null;
-        }
-
-        const dbPosts = (rows as unknown as DbPostRow[]).map((r) => {
-          const { label, timestamp } = formatTimestamp(r.created_at);
-          const rawPostType = r.post_type as 'blog' | 'news' | undefined;
-          const inferredType: 'blog' | 'news' =
-            rawPostType === 'news' || isNewsArticle({ category: r.category, is_breaking: Boolean(r.is_breaking) })
-              ? 'news'
-              : 'blog';
-
-          return {
-            id: r.id,
-            slug: r.slug,
-            title: r.title,
-            date: label,
-            timestamp,
-            excerpt: r.excerpt || '',
-            content: r.content || '',
-            category: r.category || 'TECH',
-            image: r.image || '/images/hero/hero-bg.jpg',
-            status: (r.status as 'draft' | 'pending_review' | 'published') || 'published',
-            author: r.author || 'Editorial Team',
-            is_breaking: Boolean(r.is_breaking),
-            post_type: inferredType,
-            views: Number(r.views || 0),
-          };
-        });
+        const dbPosts = (rows as unknown as DbPostRow[]).map(mapDbRowToPost);
 
         // Also check if any markdown files exist on disk that are not yet in the DB
-        try {
-          const files = (await fs.readdir(CONTENT_DIR)).filter((f) => f.endsWith('.md'));
-          const existingSlugs = new Set(dbPosts.map((p) => p.slug));
-          const missingFiles = files.filter((f) => !existingSlugs.has(f.replace(/\.md$/, '')));
-
-          if (missingFiles.length > 0) {
-            const extraPosts = await Promise.all(
-              missingFiles.map(async (file) => {
-                const slug = file.replace(/\.md$/, '');
-                const raw = await fs.readFile(path.join(CONTENT_DIR, file), 'utf-8');
-                const { data, content } = matter(raw);
-                const { label, timestamp } = formatTimestamp(data.date || new Date());
-                return {
-                  slug,
-                  title: String(data.title || slug),
-                  date: label,
-                  timestamp,
-                  excerpt: String(data.excerpt || ''),
-                  content,
-                  category: String(data.category || 'TECH'),
-                  image: String(data.image || '/images/hero/hero-bg.jpg'),
-                  status: (data.status as 'draft' | 'published') || 'published',
-                  author: String(data.author || 'Editorial Team'),
-                  views: 0,
-                };
-              }),
-            );
-            const filteredExtra =
-              statusFilter === 'all'
-                ? extraPosts
-                : extraPosts.filter((p) => p.status === statusFilter);
-            return [...dbPosts, ...filteredExtra].toSorted((a, b) => b.timestamp - a.timestamp);
-          }
-        } catch {
-          // If reading content directory fails, simply return dbPosts
+        const existingSlugs = new Set(dbPosts.map((p) => p.slug));
+        const extraPosts = await readLocalMarkdownPosts(existingSlugs);
+        if (extraPosts.length > 0) {
+          const filteredExtra =
+            statusFilter === 'all'
+              ? extraPosts
+              : extraPosts.filter((p) => p.status === statusFilter);
+          return [...dbPosts, ...filteredExtra].toSorted((a, b) => b.timestamp - a.timestamp);
         }
 
         return dbPosts;
@@ -197,37 +230,12 @@ export const getAllPosts = cache(
     }
 
     // Fallback: Read local markdown files if DB is unreachable or empty
-    try {
-      const files = (await fs.readdir(CONTENT_DIR)).filter((f) => f.endsWith('.md'));
-      const parsedPosts = await Promise.all(
-        files.map(async (file) => {
-          const slug = file.replace(/\.md$/, '');
-          const raw = await fs.readFile(path.join(CONTENT_DIR, file), 'utf-8');
-          const { data, content } = matter(raw);
-          const { label, timestamp } = formatTimestamp(data.date || new Date());
-          return {
-            slug,
-            title: String(data.title || slug),
-            date: label,
-            timestamp,
-            excerpt: String(data.excerpt || ''),
-            content,
-            category: String(data.category || 'TECH'),
-            image: String(data.image || '/images/hero/hero-bg.jpg'),
-            status: (data.status as 'draft' | 'published') || 'published',
-            author: String(data.author || 'Editorial Team'),
-            views: 0,
-          };
-        }),
-      );
-      const filtered =
-        statusFilter === 'all'
-          ? parsedPosts
-          : parsedPosts.filter((p) => p.status === statusFilter);
-      return filtered.toSorted((a, b) => b.timestamp - a.timestamp);
-    } catch {
-      return [];
-    }
+    const parsedPosts = await readLocalMarkdownPosts();
+    const filtered =
+      statusFilter === 'all'
+        ? parsedPosts
+        : parsedPosts.filter((p) => p.status === statusFilter);
+    return filtered.toSorted((a, b) => b.timestamp - a.timestamp);
   },
 );
 
@@ -343,6 +351,80 @@ export const getPostBySlug = cache(async (slug: string): Promise<Post | null> =>
     return null;
   }
 });
+
+/**
+ * Fetch up to `limit` published related posts for a given article, excluding the current article.
+ * Priority:
+ * 1. Same category (newest first)
+ * 2. Remaining slots filled with latest published posts from other categories (newest first)
+ */
+export const getRelatedPosts = cache(
+  async (
+    currentPost: { id?: number; slug: string; category?: string | null },
+    limit: number = 5,
+  ): Promise<Post[]> => {
+    const targetCategory = (currentPost.category || '').trim().toUpperCase();
+    const currentSlug = currentPost.slug;
+    const currentId = typeof currentPost.id === 'number' ? currentPost.id : null;
+
+    let dbPosts: Post[] = [];
+
+    try {
+      const rows = await sql`
+        SELECT
+          p.id,
+          p.slug,
+          p.title,
+          p.excerpt,
+          p.category,
+          p.image,
+          p.status,
+          p.author,
+          COALESCE(p.is_breaking, false) AS is_breaking,
+          COALESCE(p.post_type, 'blog') AS post_type,
+          p.created_at
+        FROM posts p
+        WHERE p.status = 'published'
+          AND p.slug <> ${currentSlug}
+          AND p.id <> ${currentId ?? -1}
+        ORDER BY
+          CASE
+            WHEN UPPER(TRIM(p.category)) = ${targetCategory} THEN 0
+            WHEN ${targetCategory} IN ('TECH', 'TECHNOLOGY') AND UPPER(TRIM(p.category)) IN ('TECH', 'TECHNOLOGY') THEN 0
+            WHEN ${targetCategory} IN ('WORLD', 'WORLD NEWS') AND UPPER(TRIM(p.category)) IN ('WORLD', 'WORLD NEWS') THEN 0
+            ELSE 1
+          END ASC,
+          p.created_at DESC
+        LIMIT ${limit}
+      `;
+
+      if (rows && rows.length > 0) {
+        dbPosts = (rows as unknown as DbPostRow[]).map(mapDbRowToPost);
+      }
+    } catch (err) {
+      console.warn('Neon DB getRelatedPosts query failed, falling back to local files:', err);
+    }
+
+    const dbSlugs = new Set(dbPosts.map((p) => p.slug));
+    dbSlugs.add(currentSlug);
+
+    const localPosts = (await readLocalMarkdownPosts(dbSlugs)).filter(
+      (p) => p.status === 'published' && p.slug !== currentSlug && (currentId === null || p.id !== currentId),
+    );
+
+    const combined = [...dbPosts, ...localPosts];
+
+    const sameCategory = combined
+      .filter((p) => categoriesMatch(p.category, targetCategory))
+      .toSorted((a, b) => b.timestamp - a.timestamp);
+
+    const otherCategories = combined
+      .filter((p) => !categoriesMatch(p.category, targetCategory))
+      .toSorted((a, b) => b.timestamp - a.timestamp);
+
+    return [...sameCategory, ...otherCategories].slice(0, limit);
+  },
+);
 
 /**
  * Fetch dedicated news articles for the Breaking & Recent News homepage section.

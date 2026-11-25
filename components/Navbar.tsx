@@ -118,6 +118,8 @@ export default function Navbar() {
 
   const isHomeActive = pathname === '/' && !activeCategory;
   const isNewsActive = pathname === '/news' || pathname.startsWith('/news/');
+  const isLiveScoresActive =
+    pathname === '/live-scores' || pathname.startsWith('/live-scores/');
   const isAnyCategoryActive = Boolean(activeCategory) || pathname.startsWith('/category/');
 
   return (
@@ -173,6 +175,25 @@ export default function Navbar() {
               >
                 News
                 {isNewsActive && (
+                  <span className="absolute bottom-0 left-0 right-0 h-[2.5px] bg-brand shadow-[0_0_8px_rgba(19,101,164,0.6)]" />
+                )}
+              </Link>
+            </li>
+
+            {/* LIVE SCORES Link */}
+            <li className="h-full">
+              <Link
+                href="/live-scores"
+                onClick={() => setActiveCategory(null)}
+                className={`relative flex h-full items-center gap-1.5 whitespace-nowrap px-2.5 xl:px-3 text-xs font-semibold uppercase tracking-wider transition-colors ${
+                  isLiveScoresActive
+                    ? 'text-white'
+                    : 'text-neutral-300 hover:text-white'
+                }`}
+              >
+                <span className="size-1.5 rounded-full bg-emerald-400" aria-hidden="true" />
+                <span>Live Scores</span>
+                {isLiveScoresActive && (
                   <span className="absolute bottom-0 left-0 right-0 h-[2.5px] bg-brand shadow-[0_0_8px_rgba(19,101,164,0.6)]" />
                 )}
               </Link>
@@ -456,6 +477,23 @@ export default function Navbar() {
                 }`}
               >
                 News
+              </Link>
+            </li>
+
+            {/* Live Scores */}
+            <li>
+              <Link
+                href="/live-scores"
+                onClick={() => {
+                  setActiveCategory(null);
+                  setIsMobileMenuOpen(false);
+                }}
+                className={`flex items-center gap-2 py-2 text-xs font-semibold uppercase tracking-wider transition-colors ${
+                  isLiveScoresActive ? 'text-brand font-bold' : 'text-neutral-300 hover:text-white'
+                }`}
+              >
+                <span className="size-1.5 rounded-full bg-emerald-400" aria-hidden="true" />
+                <span>Live Scores</span>
               </Link>
             </li>
 

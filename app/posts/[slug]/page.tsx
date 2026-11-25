@@ -1,11 +1,12 @@
 import type { Metadata } from 'next';
-import { getPostBySlug } from '@/lib/posts';
+import { getPostBySlug, getRelatedPosts } from '@/lib/posts';
 import { sql } from '@/lib/db';
 import Link from 'next/link';
 import Image from 'next/image';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import ShareButton from '@/components/ShareButton';
+import RelatedPosts from '@/components/blog/RelatedPosts';
 import { cookies } from 'next/headers';
 import { ADMIN_COOKIE_NAME, verifySessionToken } from '@/lib/auth';
 
@@ -132,24 +133,32 @@ export default async function PostPage({ params }: PageProps) {
     );
   }
 
-  // 4. Increment view count in Neon DB only for published articles
-  let currentViews = post.views || 0;
-  if (post.status === 'published') {
-    try {
-      const updated = await sql`
-        INSERT INTO post_views (slug, view_count) 
-        VALUES (${slug}, 1) 
-        ON CONFLICT (slug) 
-        DO UPDATE SET view_count = post_views.view_count + 1
-        RETURNING view_count;
-      `;
-      if (updated && updated.length > 0) {
-        currentViews = Number(updated[0].view_count);
+  // 4. Increment view count in Neon DB and fetch related articles in parallel
+  const viewUpdatePromise = (async () => {
+    let views = post.views || 0;
+    if (post.status === 'published') {
+      try {
+        const updated = await sql`
+          INSERT INTO post_views (slug, view_count) 
+          VALUES (${slug}, 1) 
+          ON CONFLICT (slug) 
+          DO UPDATE SET view_count = post_views.view_count + 1
+          RETURNING view_count;
+        `;
+        if (updated && updated.length > 0) {
+          views = Number(updated[0].view_count);
+        }
+      } catch (err) {
+        console.error('Failed to increment view count:', err);
       }
-    } catch (err) {
-      console.error('Failed to increment view count:', err);
     }
-  }
+    return views;
+  })();
+
+  const [currentViews, relatedPosts] = await Promise.all([
+    viewUpdatePromise,
+    getRelatedPosts({ id: post.id, slug: post.slug, category: post.category }, 5),
+  ]);
 
   const contentToRender = post.content || post.excerpt || '';
 
@@ -318,6 +327,8 @@ export default async function PostPage({ params }: PageProps) {
           </Link>
         </div>
       </article>
+
+      <RelatedPosts posts={relatedPosts} category={post.category} />
     </main>
   );
 }
